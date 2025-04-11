@@ -1,8 +1,29 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import background from "./back1.jpg";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 function LoginSignupPage() {
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await axios.get("http://localhost:8000/protect", {
+          withCredentials: true,
+        });
+        if (res.data?.error) {
+          console.log(res.data.error);
+        } else {
+          navigate("/home");
+        }
+      } catch (err) {
+        navigate("/");
+      }
+    };
+    fetchUser();
+  }, []);
+
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -25,17 +46,6 @@ function LoginSignupPage() {
     return regex.test(email);
   };
 
-  const isUsernameUnique = async () => {
-    try {
-      const res = await axios.post("/check-username", { username });
-      const { check } = res.data;
-      return check !== "notok"; // true if available
-    } catch (err) {
-      console.error("Error checking username:", err);
-      return true; // treat as taken if error
-    }
-  };
-
   const resetFields = () => {
     setName("");
     setUsername("");
@@ -51,59 +61,107 @@ function LoginSignupPage() {
 
   const handleSendOtp = async () => {
     if (!name || !username || !age || !email) {
-      alert("Please fill all fields (name, username, age, email).");
+      toast.warning("Please fill all fields (name, username, age, email).");
       return;
     }
     if (!isValidEmail(email)) {
-      alert("Please enter a valid email address (gmail, outlook, etc).");
+      toast.warning(
+        "Please enter a valid email address (gmail, outlook, etc)."
+      );
       return;
     }
-    const isUnique = await isUsernameUnique(username);
-    if (!isUnique) {
-      alert("Username already exists. Please choose another.");
+
+    const res1 = await axios.post("http://localhost:8000/checkUserAndEmail", {
+      email,
+      username,
+    });
+    if (res1.data.check == "Email repeated") {
+      toast.warning("Email already exists. Please use a different email.");
+      setEmail("");
       return;
     }
+    if (res1.data.check == "Username repeated") {
+      toast.warning(
+        "Username already exists. Please use a different username."
+      );
+      setUsername("");
+      return;
+    }
+
     const res = await axios.post("http://localhost:8000/sendOtp", { email });
     setOtp(res.data.otp);
     setIsOtpSent(true);
-    alert(`OTP sent to ${email}`);
+    toast.info(`OTP sent to ${email}`);
   };
 
   const handleVerifyOtp = () => {
     if (enteredOtp == otp) {
       setIsOtpVerified(true);
-      alert("OTP verified! You can now set your password.");
+      toast.success("OTP verified! You can now set your password.");
     } else {
-      alert("Incorrect OTP. Please try again.");
+      toast.error("Incorrect OTP. Please try again.");
+    }
+  };
+
+  const handleSignin = async () => {
+    const res = await axios.post(
+      "http://localhost:8000/signin",
+      {
+        email,
+        password,
+      },
+      {
+        withCredentials: true,
+      }
+    );
+    if (res.data.error) {
+      toast.error(res.data.error);
+      return;
+    } else {
+      localStorage.setItem("user-data", JSON.stringify(res.data));
+      navigate("/Home");
+      resetFields();
     }
   };
 
   const handleSignup = async () => {
     if (!name || !username || !age || !email) {
-      alert("Please fill all fields (name, username, age, email).");
+      toast.warning("Please fill all fields (name, username, age, email).");
       return;
     }
     if (!isValidEmail(email)) {
-      alert("Please enter a valid email address (gmail, outlook, etc).");
-      return;
-    }
-    const isUnique = await isUsernameUnique(username);
-    if (!isUnique) {
-      alert("Username already exists. Please choose another.");
+      toast.warning(
+        "Please enter a valid email address (gmail, outlook, etc)."
+      );
       return;
     }
 
     if (!password || !confirmPassword) {
-      alert("Please set your password.");
+      toast.warning("Please set your password.");
       return;
     }
     if (password !== confirmPassword) {
-      alert("Passwords do not match.");
+      toast.warning("Passwords do not match.");
       return;
     }
-    alert("Signed up successfully!");
-    resetFields();
-    setIsSignup(false);
+
+    const res = await axios.post("http://localhost:8000/signup", {
+      name,
+      username,
+      age,
+      email,
+      password,
+    });
+    if (res.data.error) {
+      toast.error(res.data.error);
+      return;
+    } else {
+      localStorage.setItem("user-data", JSON.stringify(res.data));
+      navigate("/Home");
+      toast.success("Signed up successfully!");
+      resetFields();
+      setIsSignup(false);
+    }
   };
 
   const inputClass =
@@ -198,9 +256,7 @@ function LoginSignupPage() {
                   <button
                     type="button"
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-gray-300 hover:text-white"
-                    onClick={() =>
-                      setShowSignupPassword(!showSignupPassword)
-                    }
+                    onClick={() => setShowSignupPassword(!showSignupPassword)}
                   >
                     {showSignupPassword ? "Hide" : "Show"}
                   </button>
@@ -217,9 +273,7 @@ function LoginSignupPage() {
                   <button
                     type="button"
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-gray-300 hover:text-white"
-                    onClick={() =>
-                      setShowConfirmPassword(!showConfirmPassword)
-                    }
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   >
                     {showConfirmPassword ? "Hide" : "Show"}
                   </button>
@@ -272,7 +326,10 @@ function LoginSignupPage() {
                 {showPassword ? "Hide" : "Show"}
               </button>
             </div>
-            <button className="w-full bg-red-600 hover:bg-red-700 py-2 rounded font-semibold">
+            <button
+              className="w-full bg-red-600 hover:bg-red-700 py-2 rounded font-semibold"
+              onClick={handleSignin}
+            >
               Sign in
             </button>
 

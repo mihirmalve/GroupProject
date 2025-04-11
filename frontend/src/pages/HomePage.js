@@ -1,19 +1,51 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FiMenu } from "react-icons/fi";
 import Editor from "@monaco-editor/react";
 import axios from "axios";
 import CreateGroupPage from "./CreateGroupPage";
 import JoinGroupPage from "./JoinGroupPage";
+import { useNavigate } from "react-router-dom";
 
 function HomePage() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await axios.get("http://localhost:8000/protect", {
+          withCredentials: true,
+        });
+        if (res.data?.error) {
+          console.log(res.data.error);
+          navigate("/");
+        } else {
+          navigate("/home");
+        }
+      } catch (err) {
+        navigate("/");
+      }
+    };
+    fetchUser();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await axios.post("http://localhost:8000/logout", null, {
+        withCredentials: true,
+      });
+      localStorage.removeItem("user-data");
+      navigate("/");
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
   const [menuOpen, setMenuOpen] = useState(false);
   const [code, setCode] = useState("// Write your code here");
   const [output, setOutput] = useState("");
   const [language, setLanguage] = useState("cpp");
-  const [input,setInput]=useState("");
-  const [showCreateGroupPage,setShowCreateGroupPage]=useState(false);
-  const [showJoinGroupPage,setShowJoinGroupPage]=useState(false);
-
+  const [input, setInput] = useState("");
+  const [showCreateGroupPage, setShowCreateGroupPage] = useState(false);
+  const [showJoinGroupPage, setShowJoinGroupPage] = useState(false);
 
   const joinedGroups = [
     "DSA Squad",
@@ -31,49 +63,79 @@ function HomePage() {
         language,
         input,
       });
-      console.log(res)
-      
+      console.log(res);
+
       setOutput(res.data.output || res.data.error);
-     
-    }  catch (err) {
-    // have to handle the time limit excedded properly
+    } catch (err) {
+      // have to handle the time limit excedded properly
       if (err.response || err.response.data || err.response.data.error) {
         setOutput(err.response.data.error);
       } else {
         setOutput("An unknown error occurred.");
       }
     }
-    
   };
 
   return (
     <div className="h-screen w-screen bg-neutral-950 text-gray-200 flex flex-col font-sans">
       {/* Top Bar */}
-      
-      {showCreateGroupPage && <CreateGroupPage show={showCreateGroupPage}
-          setShow={setShowCreateGroupPage}/>}
-          {showJoinGroupPage && <JoinGroupPage show={showJoinGroupPage}
-          setShow={setShowJoinGroupPage}/>}
+
+      {showCreateGroupPage && (
+        <CreateGroupPage
+          show={showCreateGroupPage}
+          setShow={setShowCreateGroupPage}
+        />
+      )}
+      {showJoinGroupPage && (
+        <JoinGroupPage
+          show={showJoinGroupPage}
+          setShow={setShowJoinGroupPage}
+        />
+      )}
       <div className="relative flex items-center justify-between px-4 py-3 border-b border-neutral-800 bg-neutral-900">
         <button onClick={() => setMenuOpen(!menuOpen)}>
           <FiMenu className="text-gray-300 text-2xl hover:text-red-500 transition" />
         </button>
         <h1 className="text-lg tracking-wide text-gray-300">BROCODE</h1>
-        <div className="text-sm text-gray-400">Hi, User!</div>
+        <div className="flex items-center gap-4 text-sm text-gray-400">
+          <span>
+            Hi,{" "}
+            {JSON.parse(localStorage.getItem("user-data") || "{}").fullName ||
+              "User"}
+            !
+          </span>
+          <button
+            onClick={handleLogout}
+            className="px-3 py-1 text-gray-300 border-2 border-white-700 rounded hover:bg-red-600 hover:border-red-600 transition text-xs"
+          >
+            LOG OUT
+          </button>
+        </div>
 
         {/* Dropdown */}
         {menuOpen && (
           <div className="absolute top-14 left-4 w-44 rounded-md shadow-md bg-neutral-800 border border-neutral-700 z-50">
-            <div className="px-4 py-2 hover:bg-neutral-700 cursor-pointer transition">My Profile</div>
-            <div className="px-4 py-2 hover:bg-neutral-700 cursor-pointer transition" 
-            onClick={()=>{setMenuOpen(!menuOpen);
-              setShowCreateGroupPage(!showCreateGroupPage);
-            }}>Create Group</div>
-            <div className="px-4 py-2 hover:bg-neutral-700 cursor-pointer transition"
-             onClick={()=>{setMenuOpen(!menuOpen);
-              setShowJoinGroupPage(!showCreateGroupPage);
-            }}
-            >Join Group</div>
+            <div className="px-4 py-2 hover:bg-neutral-700 cursor-pointer transition">
+              My Profile
+            </div>
+            <div
+              className="px-4 py-2 hover:bg-neutral-700 cursor-pointer transition"
+              onClick={() => {
+                setMenuOpen(!menuOpen);
+                setShowCreateGroupPage(!showCreateGroupPage);
+              }}
+            >
+              Create Group
+            </div>
+            <div
+              className="px-4 py-2 hover:bg-neutral-700 cursor-pointer transition"
+              onClick={() => {
+                setMenuOpen(!menuOpen);
+                setShowJoinGroupPage(!showCreateGroupPage);
+              }}
+            >
+              Join Group
+            </div>
           </div>
         )}
       </div>
@@ -112,7 +174,6 @@ function HomePage() {
                 setOutput("Compiling your code....");
                 handleCompile();
               }}
-              
               className="bg-red-600 hover:bg-red-700 px-4 py-1 rounded text-sm"
             >
               Compile & Run
@@ -127,33 +188,34 @@ function HomePage() {
               value={code}
               onChange={(val) => setCode(val || "")}
               theme="vs-dark"
-              options={{ fontSize: 14, minimap: { enabled: false }, wordWrap: "on" }}
+              options={{
+                fontSize: 14,
+                minimap: { enabled: false },
+                wordWrap: "on",
+              }}
             />
           </div>
 
-          
           <div className="flex gap-4 items-start">
-              {/* Output */}
-              <div className="w-[70%] bg-neutral-900 p-3 rounded border border-neutral-700 text-sm h-40 overflow-auto">
-                <h2 className="text-red-500 mb-1 font-medium">Output:</h2>
-                <pre className="whitespace-pre-wrap">{output}</pre>
-              </div>
-
-              {/* Input */}
-              <div className="w-[30%]">
-                <h2 className="text-red-500 mb-1 font-medium">Input:</h2>
-                <textarea
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder="Enter input for the code..."
-                    className="w-full h-32 p-2 border border-neutral-700 
-                      rounded bg-neutral-900 text-white resize-none text-sm 
-                      focus:outline-none focus:ring-2  focus:ring-red-500 focus:border-red-500"
-                  />
-
-               </div>
+            {/* Output */}
+            <div className="w-[70%] bg-neutral-900 p-3 rounded border border-neutral-700 text-sm h-40 overflow-auto">
+              <h2 className="text-red-500 mb-1 font-medium">Output:</h2>
+              <pre className="whitespace-pre-wrap">{output}</pre>
             </div>
 
+            {/* Input */}
+            <div className="w-[30%]">
+              <h2 className="text-red-500 mb-1 font-medium">Input:</h2>
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Enter input for the code..."
+                className="w-full h-32 p-2 border border-neutral-700 
+                      rounded bg-neutral-900 text-white resize-none text-sm 
+                      focus:outline-none focus:ring-2  focus:ring-red-500 focus:border-red-500"
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>
