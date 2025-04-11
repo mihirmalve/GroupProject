@@ -1,5 +1,6 @@
 // server.js
 import compileRoutes from './routes/compileRoutes.js'
+import otpRoutes from './routes/otpRoutes.js'
 import express from 'express';
 import cors from "cors"
 
@@ -14,6 +15,8 @@ app.get('/', (req, res) => {
 });
 
 app.use('/',compileRoutes)
+app.use('/',otpRoutes)
+
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);

@@ -49,6 +49,7 @@ function HomePage() {
   return (
     <div className="h-screen w-screen bg-neutral-950 text-gray-200 flex flex-col font-sans">
       {/* Top Bar */}
+      
       {showCreateGroupPage && <CreateGroupPage show={showCreateGroupPage}
           setShow={setShowCreateGroupPage}/>}
           {showJoinGroupPage && <JoinGroupPage show={showJoinGroupPage}
