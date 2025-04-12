@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { toast } from "react-toastify";
 
 const CreateGroupPage = ({ show, setShow,refreshGroups }) => {
   const onClose = () => {
@@ -22,15 +23,15 @@ const CreateGroupPage = ({ show, setShow,refreshGroups }) => {
       });
 
       if (res.status === 201) {
-        alert("Group Created Successfully");
+        toast.success("Group Created Successfully");
         refreshGroups();
         onClose();
       } else {
-        alert("Group Creation Failed");
+        toast.error("Group Creation Failed");
       }
     } catch (err) {
       console.log("Error creating group:", err);
-      alert("Group Creation Failed");
+      toast.error("Group Creation Failed");
     }
   };
   const [groupName, setGroupName] = useState("");

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { toast } from "react-toastify";
 
 const JoinGroupPage = ({ show, setShow,refreshGroups }) => {
   const [groupName, setGroupName] = useState("");
@@ -26,15 +27,15 @@ const JoinGroupPage = ({ show, setShow,refreshGroups }) => {
       });
 
       if (res.status === 201) {
-        alert("Group Joined Successfully");
+        toast.success("Group Joined Successfully");
         refreshGroups();
         onClose();
       } else {
-        alert("Group Join Failed");
+        toast.error("Group Join Failed");
       }
     } catch (err) {
       console.log("Error joining group:", err);
-      alert("Group Join Failed");
+      toast.error("Group Join Failed");
     }
   };
 
