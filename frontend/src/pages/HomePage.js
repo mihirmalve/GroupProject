@@ -5,9 +5,9 @@ import axios from "axios";
 import CreateGroupPage from "./CreateGroupPage";
 import JoinGroupPage from "./JoinGroupPage";
 import { useNavigate } from "react-router-dom";
-
 function HomePage() {
   const navigate = useNavigate();
+  
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -26,6 +26,28 @@ function HomePage() {
     };
     fetchUser();
   }, []);
+  const fetchGroups = async () => {
+    try {
+      const res = await axios.post("http://localhost:8000/groups",{}, {
+        withCredentials: true,
+      });
+      const data = res.data;
+
+      // ✅ Merge created and joined groups
+      const mergedGroups = [...data.joinedGroups];
+      setJoinedGroups(mergedGroups);
+    } catch (err) {
+      console.error("Failed to fetch groups", err);
+    }
+  };
+
+  //useEffect to load groups
+  useEffect(() => {
+   
+    fetchGroups();
+  }, []);
+  
+  
 
   const handleLogout = async () => {
     try {
@@ -46,15 +68,16 @@ function HomePage() {
   const [input, setInput] = useState("");
   const [showCreateGroupPage, setShowCreateGroupPage] = useState(false);
   const [showJoinGroupPage, setShowJoinGroupPage] = useState(false);
+  const [joinedGroups,setJoinedGroups]=useState([])
 
-  const joinedGroups = [
-    "DSA Squad",
-    "Frontend Ninjas",
-    "CodeCrushers",
-    "NightOwls",
-    "Team Alpha",
-    "Backup Team",
-  ];
+  // const joinedGroups = [
+  //   "DSA Squad",
+  //   "Frontend Ninjas",
+  //   "CodeCrushers",
+  //   "NightOwls",
+  //   "Team Alpha",
+  //   "Backup Team",
+  // ];
 
   const handleCompile = async () => {
     try {
@@ -84,6 +107,7 @@ function HomePage() {
         <CreateGroupPage
           show={showCreateGroupPage}
           setShow={setShowCreateGroupPage}
+          refreshGroups={fetchGroups} 
         />
       )}
       {showJoinGroupPage && (

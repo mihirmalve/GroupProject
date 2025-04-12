@@ -2,6 +2,9 @@
 import compileRoutes from './routes/compileRoutes.js'
 import otpRoutes from './routes/otpRoutes.js'
 import authRoutes from './routes/authRoutes.js'
+import groupRoutes from "./routes/groupRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
+
 import express from 'express';
 import cors from "cors"
 import dotenv from "dotenv"
@@ -31,6 +34,8 @@ app.get('/', (req, res) => {
 app.use("/", authRoutes)
 app.use('/',compileRoutes)
 app.use('/',otpRoutes)
+app.use('/',groupRoutes)
+app.use('/',userRoutes)
 
 
 app.listen(PORT, () => {
