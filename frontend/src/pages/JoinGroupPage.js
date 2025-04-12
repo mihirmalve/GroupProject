@@ -7,7 +7,7 @@ const JoinGroupPage = ({ show, setShow }) => {
 
   const onClose = () => {
     setShow(false);
-  };
+  };    
 
   const togglePasswordVisibility = () => {
     setShowPassword((prev) => !prev);

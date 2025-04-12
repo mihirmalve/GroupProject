@@ -151,13 +151,16 @@ function LoginSignupPage() {
       age,
       email,
       password,
-    });
+    },
+      {
+        withCredentials: true,
+      });
     if (res.data.error) {
       toast.error(res.data.error);
       return;
     } else {
       localStorage.setItem("user-data", JSON.stringify(res.data));
-      navigate("/Home");
+      navigate("/Home ");
       toast.success("Signed up successfully!");
       resetFields();
       setIsSignup(false);
