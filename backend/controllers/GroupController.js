@@ -1,8 +1,8 @@
 import bcrypt from "bcryptjs"; // Make sure this is installed
 import Group from "../models/groupModel.js";
-import User from "../models/userModel.js";
 import jwt from "jsonwebtoken";
 import userModel from "../models/userModel.js";
+import groupModel from "../models/groupModel.js";
 
 class GroupController {
   async createGroup(req, res) {
@@ -39,31 +39,43 @@ class GroupController {
 
   async joinGroup(req, res) {
     try {
-      const { groupId, password } = req.body;
-      const userId = req.user.id;
-
+      const { name, password } = req.body;
+      const token = req.cookies.jwt;
+      const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+      const user_id = decoded.userId;
+ 
+    
       // Check if the group exists
-      const group = await Group.findById(groupId);
+      const group = await groupModel.findOne({ name });
       if (!group) {
+        console.log(1);
         return res.status(404).json({ message: "Group not found" });
       } else {
         // Check if the group password is correct
         if (group.password) {
           const isMatch = await bcrypt.compare(password, group.password);
           if (!isMatch) {
+            console.log(2);
             return res.status(400).json({ message: "Incorrect password" });
           }
         }
       }
+      const user = await userModel.findById( user_id );
+      const groupId = group._id;
+      
+      // Add user to group members
+      if (!group.members.includes(user_id)) {
+        group.members.push(user_id);
+        await group.save();
+        // Add group to user joined Groups
+        user.joinedGroups.push(groupId);
+        await user.save();
+      
+      } 
+      
+      
 
-      // Update user’s joinedGroups
-      await User.findByIdAndUpdate(userId, {
-        $push: {
-          joinedGroups: groupId,
-        },
-      });  
-
-      res.status(200).json({ message: "Joined group successfully" });
+      res.status(201).json({ message: "Joined group successfully" });
     } catch (err) {
       console.error("Error joining group:", err);
       res.status(500).json({ message: "Server error" });

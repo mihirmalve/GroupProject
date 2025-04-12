@@ -1,16 +1,41 @@
 import React, { useState } from "react";
+import axios from "axios";
 
-const JoinGroupPage = ({ show, setShow }) => {
+const JoinGroupPage = ({ show, setShow,refreshGroups }) => {
   const [groupName, setGroupName] = useState("");
   const [groupPassword, setGroupPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   const onClose = () => {
-    setShow(false);
+    setShow(!show);
   };    
-
+ 
   const togglePasswordVisibility = () => {
     setShowPassword((prev) => !prev);
+  };
+
+  const JoinButtonHandler = async () => {
+    try {
+      const data = {
+        name: groupName,
+        password: groupPassword,
+      };
+
+      const res = await axios.post("http://localhost:8000/join", data, {
+        withCredentials: true,
+      });
+
+      if (res.status === 201) {
+        alert("Group Joined Successfully");
+        refreshGroups();
+        onClose();
+      } else {
+        alert("Group Join Failed");
+      }
+    } catch (err) {
+      console.log("Error joining group:", err);
+      alert("Group Join Failed");
+    }
   };
 
   return (
@@ -64,7 +89,7 @@ const JoinGroupPage = ({ show, setShow }) => {
         {/* Join Button */}
         <button
           className="w-full bg-red-600 hover:bg-red-700 transition-colors text-white py-2.5 rounded-lg font-medium text-sm"
-          // TODO: Add onClick functionality
+          onClick={JoinButtonHandler}
         >
           Join Group
         </button>

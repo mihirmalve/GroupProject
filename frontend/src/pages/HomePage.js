@@ -114,6 +114,7 @@ function HomePage() {
         <JoinGroupPage
           show={showJoinGroupPage}
           setShow={setShowJoinGroupPage}
+          refreshGroups={fetchGroups} 
         />
       )}
       <div className="relative flex items-center justify-between px-4 py-3 border-b border-neutral-800 bg-neutral-900">
