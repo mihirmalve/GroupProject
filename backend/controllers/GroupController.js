@@ -72,8 +72,6 @@ class GroupController {
         await user.save();
       
       } 
-      
-      
 
       res.status(201).json({ message: "Joined group successfully" });
     } catch (err) {

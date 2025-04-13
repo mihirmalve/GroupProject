@@ -4,6 +4,7 @@ import otpRoutes from './routes/otpRoutes.js'
 import authRoutes from './routes/authRoutes.js'
 import groupRoutes from "./routes/groupRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
+import messageRoutes from "./routes/messageRoutes.js";
 
 import express from 'express';
 import cors from "cors"
@@ -11,9 +12,10 @@ import dotenv from "dotenv"
 import cookieParser from "cookie-parser"
 import dbConnect from "./services/dbConnect.js"
 
+import {app, server} from './socket/socket.js'
+
 dotenv.config()
 
-const app = express();
 app.use(cors({
   origin: "http://localhost:3000",  // your frontend URL
   credentials: true
@@ -36,8 +38,9 @@ app.use('/',compileRoutes)
 app.use('/',otpRoutes)
 app.use('/',groupRoutes)
 app.use('/',userRoutes)
+app.use('/',messageRoutes)
 
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
