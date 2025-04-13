@@ -20,6 +20,26 @@ const getReceiverSocketId = (receiverId) => {
 };
 
 io.on("connection", (socket) => {
+  const cookieHeader = socket.handshake.headers.cookie;
+
+  if (!cookieHeader) {
+    console.log("❌ No cookies, disconnecting socket:", socket.id);
+    socket.disconnect();
+    return;
+  }
+
+  const parsedCookies = cookie.parse(cookieHeader);
+  const jwt = parsedCookies.jwt;
+
+  if (!jwt) {
+    console.log(
+      "❌ JWT token not found in cookies, disconnecting socket:",
+      socket.id
+    );
+    socket.disconnect();
+    return;
+  }
+  
   console.log("a user connected", socket.id);
 
   const userId = socket.handshake.query.userId;
@@ -34,10 +54,9 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log("user disconnected", socket.id);
     delete userSocketMap[userId];
-	// Emit when disconnect
+    // Emit when disconnect
     io.emit("getOnlineUsers", Object.keys(userSocketMap));
   });
- 
 });
 
 export { app, io, server, getReceiverSocketId };
