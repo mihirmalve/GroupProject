@@ -2,6 +2,7 @@ import "./App.css";
 import HomePage from "./pages/HomePage.js";
 import LoginSignupPage from "./pages/LoginSignupPage";
 import ProfilePage from "./pages/ProfilePage";
+import GroupPage from "./pages/GroupPage";
 import {
   Route,
   RouterProvider,
@@ -19,6 +20,7 @@ const router = createBrowserRouter(
       <Route path="" element={<LoginSignupPage />} />
       <Route path="Home" element={<HomePage />} />
       <Route path="profile" element={<ProfilePage />} />
+      <Route path="groups/:groupId" element={<GroupPage />} />
     </Route>
   )
 );

@@ -60,6 +60,10 @@ function HomePage() {
       console.log(err);
     }
   };
+  const GroupClickHandler=(group)=>{
+   navigate(`/groups/${group._id}` );
+
+  }
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [code, setCode] = useState("// Write your code here");
@@ -174,8 +178,9 @@ function HomePage() {
               <li
                 key={index}
                 className="bg-neutral-800 p-2 rounded hover:bg-neutral-700 cursor-pointer text-sm"
+                onClick={()=>{GroupClickHandler(group)}}
               >
-                {group}
+                {group.name}
               </li>
             ))}
           </ul>

@@ -103,34 +103,21 @@ class UserController {
       const user_id = decoded.userId;
 
       const user = await User.findById(user_id);
+      const groupDocs = await groupModel
+        .find({
+          _id: { $in: user.joinedGroups },
+        })
+        .select("name");
+
+      const joinedGroups = groupDocs.map((group) => ({
+        _id: group._id,
+        name: group.name,
+      }));
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
-
-      const joinedGroups = user.joinedGroups;
-      const createdGroups = user.createdGroups;
-      const joinedGroupsNames = [];
-      const createdGroupsNames = [];
-
-      // Fetch group names for joined groups
-      for (let i = 0; i < joinedGroups.length; i++) {
-        const group = await groupModel.findById(joinedGroups[i]);
-        if (group) {
-          joinedGroupsNames.push(group.name);
-        }
-      }
-
-      // Fetch group names for created groups
-      for (let i = 0; i < createdGroups.length; i++) {
-        const group = await groupModel.findById(createdGroups[i]);
-        if (group) {
-          createdGroupsNames.push(group.name);
-        }
-      }
-
       res.status(200).json({
-        joinedGroups: joinedGroupsNames,
-        createdGroups: createdGroupsNames,
+        joinedGroups: joinedGroups,
       });
     } catch (err) {
       console.error("Error fetching user groups:", err);

@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import axios from "axios";
 
 export default function GroupPage() {
+    const navigate = useNavigate();
   const [code, setCode] = useState("// Write your code here");
   const [output, setOutput] = useState("");
   const [language, setLanguage] = useState("cpp");
@@ -55,7 +56,8 @@ export default function GroupPage() {
       {/* Chat Sidebar */}
       <div className="w-[25%] border-r border-neutral-800 bg-neutral-950 flex flex-col shadow-lg transition-colors duration-200">
         <div className="p-3 border-b border-neutral-800 bg-neutral-900 flex items-center justify-between">
-          <button className="bg-red-600 hover:bg-red-700 transition-all text-white px-3 py-1.5 rounded text-xs shadow-md">
+          <button className="bg-red-600 hover:bg-red-700 transition-all text-white px-3 py-1.5 rounded text-xs shadow-md"
+            onClick={() => navigate("/home")}>
             ← Back to Home
           </button>
           <button
@@ -188,7 +190,6 @@ export default function GroupPage() {
             }}
           />
         </div>
-
         {/* Output/Input Area */}
         <div className="flex gap-4">
           <div className="w-[70%] bg-neutral-900 rounded-lg border border-neutral-700 text-sm h-40 overflow-auto shadow-sm flex flex-col">
