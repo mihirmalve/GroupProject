@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
+import Avatar from 'react-avatar';
+
 
 export default function MyProfile() {
   const navigate = useNavigate();
@@ -9,6 +11,28 @@ export default function MyProfile() {
 
   const [groupToDelete, setGroupToDelete] = useState(null);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+
+
+  const [profilePic, setProfilePic] = useState(null);
+  const [isImageSelected, setIsImageSelected] = useState(false); // To track if an image is selected
+
+  const handleProfilePicChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfilePic(reader.result);
+        setIsImageSelected(true); // Image is selected
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleDeleteProfilePic = () => {
+    setProfilePic(null);
+    setIsImageSelected(false); // Reset to show the avatar again
+  };
+  
 
   const confirmDelete = async () => {
     try {
@@ -97,17 +121,52 @@ export default function MyProfile() {
         {/* Left Side: Profile & Basic Info */}
         <div className="flex flex-col items-center md:items-start">
           {/* Profile Pic */}
+          {profilePic ? (
           <img
-            src={user.profilePic || "/profile-pic.jpg"}
+            src={profilePic}
             alt="Profile"
             className="w-40 h-40 rounded-full object-cover border-4 border-red-600 shadow-lg hover:border-red-500 transition-all duration-300"
           />
+        ) : (
+          <Avatar
+          name={user.user.fullName ? user.user.fullName.charAt(0).toUpperCase() : "?"}
+          size="160"
+          round={true}
+          color="#000000"      // background inside circle: black
+          fgColor="#FF0000"    // initials: red
+          style={{
+            border: "4px solid #FF0000", // one clean outer red border
+           
+          }}
+        />
+        )}
+
+
 
           {/* Change button */}
           <div className="mt-6 w-full flex justify-center md:justify-start">
-            <button className="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-full text-sm font-medium tracking-wide shadow-lg hover:shadow-red-900/50 transition-all duration-300">
-              Change Profile Picture
+           <input
+            type="file"
+            accept="image/*"
+            onChange={handleProfilePicChange}
+            className="hidden"
+            id="profile-pic-upload"
+          />
+          <label
+            htmlFor="profile-pic-upload"
+            className="cursor-pointer bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-full text-sm font-medium tracking-wide shadow-lg hover:shadow-red-900/50 transition-all duration-300"
+          >
+            Change Profile Picture
+          </label>
+
+          {isImageSelected && (
+            <button
+              onClick={handleDeleteProfilePic}
+              className="bg-black-700 hover:bg-gray-600 text-white px-5 py-2 rounded-full text-sm font-medium tracking-wide shadow-lg hover:shadow-red-900/50 transition-all duration-300"
+            >
+              Delete Photo
             </button>
+          )}
           </div>
 
           {/* Basic Info */}
