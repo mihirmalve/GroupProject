@@ -1,24 +1,41 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import toast from "react-hot-toast";
 
 export default function MyProfile() {
-  const [user, setUser] = useState({});
-  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
-  const [groupToDelete, setGroupToDelete] = useState(null);
   const navigate = useNavigate();
+  const [user, setUser] = useState({});
 
-  const handleDeleteGroup = (group) => {
-    setGroupToDelete(group);
-    setShowConfirmDelete(true);
-  };
+  const [groupToDelete, setGroupToDelete] = useState(null);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
+    try {
+      const res = await axios.post("http://localhost:8000/deleteGroup", { groupId: groupToDelete._id }, {
+        withCredentials: true,
+      });
+      if (res.status === 200) {
+        toast.success("Group deleted successfully");
+        setUser((prev) => ({
+          ...prev,
+          user: {
+            ...prev.user,
+            createdGroups: prev.user.createdGroups.filter(
+              (g) => g._id !== groupToDelete._id
+            ),
+          },
+        }));
+      }
+    } catch (err) {
+      toast.error(err);
+    }
     console.log(`Deleted group: ${groupToDelete}`);
     setShowConfirmDelete(false);
   };
 
   const cancelDelete = () => {
+    setGroupToDelete(null);
     setShowConfirmDelete(false);
   };
 
@@ -139,17 +156,17 @@ export default function MyProfile() {
             Groups Created
           </h2>
           <ul className="space-y-3">
-            {user.user.createdGroups && user.user.createdGroups.length > 0 ? (
-              user.user.createdGroups.map((group, index) => (
+            {user?.user?.createdGroups?.length > 0  ? (
+              user.user.createdGroups.map((group) => (
                 <li
-                  key={index}
+                  key={group._id}
                   className="bg-gray-900 hover:bg-gray-800 px-5 py-3 rounded-xl shadow-lg transition-all duration-300 flex justify-between items-center group"
                 >
                   <span className="text-lg font-medium text-white/90 group-hover:text-white">
                     {group.name}
                   </span>
                   <button
-                    onClick={() => handleDeleteGroup(group)}
+                    onClick={() => {setShowConfirmDelete(!showConfirmDelete); setGroupToDelete(group);}}
                     className="text-gray-400 hover:text-red-500 p-2 rounded-full hover:bg-gray-700 transition-all duration-300"
                   >
                     <svg
@@ -187,7 +204,7 @@ export default function MyProfile() {
             </h3>
             <p className="text-gray-400 text-center mb-5">
               Are you sure you want to delete{" "}
-              <span className="font-medium text-white">"{groupToDelete}"</span>?
+              <span className="font-medium text-white">"{groupToDelete.name}"</span>?
             </p>
             <div className="flex justify-center gap-3">
               <button

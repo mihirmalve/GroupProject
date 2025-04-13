@@ -5,5 +5,6 @@ const router = express.Router();
 
 router.post("/groups", UserController.getUserGroups);
 router.post("/getProfile", UserController.getProfile); // future endpoint
+router.post("/deleteGroup", UserController.deleteGroup);
 
 export default router;
