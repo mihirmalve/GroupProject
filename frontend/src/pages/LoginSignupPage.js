@@ -59,6 +59,28 @@ function LoginSignupPage() {
     setIsOtpVerified(false);
   };
 
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      if (e.key === "Enter") {
+        if (isSignup) {
+          if (isOtpVerified) {
+            handleSignup();
+          } else if (isOtpSent && !isOtpVerified) {
+            handleVerifyOtp();
+          } else if (!isOtpSent) {
+            handleSendOtp();
+          }
+        } else {
+          handleSignin();
+        }
+      }
+    };
+  
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
+  }, [isSignup, isOtpSent, isOtpVerified, name, username, age, email, otp, enteredOtp, password, confirmPassword]);
+  
+
   const handleSendOtp = async () => {
     if (!name || !username || !age || !email) {
       toast.warning("Please fill all fields (name, username, age, email).");
@@ -104,25 +126,32 @@ function LoginSignupPage() {
   };
 
   const handleSignin = async () => {
-    const res = await axios.post(
-      "http://localhost:8000/signin",
-      {
-        email,
-        password,
-      },
-      {
-        withCredentials: true,
+    try {
+      const res = await axios.post(
+        "http://localhost:8000/signin",
+        {
+          email,
+          password,
+        },
+        {
+          withCredentials: true,
+        }
+      );
+  
+      if (res.data.error) {
+        toast.error(res.data.error);
+        return;
+      } else {
+        localStorage.setItem("user-data", JSON.stringify(res.data));
+        navigate("/Home");
+        resetFields();
       }
-    );
-    if (res.data.error) {
-      toast.error(res.data.error);
-      return;
-    } else {
-      localStorage.setItem("user-data", JSON.stringify(res.data));
-      navigate("/Home");
-      resetFields();
+    } catch (err) {
+      // Catch 401 or other errors here and show toast
+      toast.error(err.response?.data?.error || "Invalid email or password");
     }
   };
+  
 
   const handleSignup = async () => {
     if (!name || !username || !age || !email) {

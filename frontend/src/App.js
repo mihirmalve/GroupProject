@@ -1,6 +1,7 @@
 import "./App.css";
 import HomePage from "./pages/HomePage.js";
 import LoginSignupPage from "./pages/LoginSignupPage";
+import ProfilePage from "./pages/ProfilePage";
 import {
   Route,
   RouterProvider,
@@ -8,7 +9,7 @@ import {
   createRoutesFromElements,
   BrowserRouter,
 } from "react-router-dom";
-import { Routes } from "react-router-dom";
+// import { Routes } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -17,6 +18,7 @@ const router = createBrowserRouter(
     <Route path="/">
       <Route path="" element={<LoginSignupPage />} />
       <Route path="Home" element={<HomePage />} />
+      <Route path="profile" element={<ProfilePage />} />
     </Route>
   )
 );

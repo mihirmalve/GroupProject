@@ -140,7 +140,7 @@ function HomePage() {
         {/* Dropdown */}
         {menuOpen && (
           <div className="absolute top-14 left-4 w-44 rounded-md shadow-md bg-neutral-800 border border-neutral-700 z-50">
-            <div className="px-4 py-2 hover:bg-neutral-700 cursor-pointer transition">
+            <div className="px-4 py-2 hover:bg-neutral-700 cursor-pointer transition" onClick={() => navigate("/profile")}>
               My Profile
             </div>
             <div
