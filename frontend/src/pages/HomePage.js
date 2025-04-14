@@ -64,7 +64,7 @@ function HomePage() {
     }
   };
 
-  //useEffect to load groups
+  // Load groups amd fetch code
   useEffect(() => {
     fetchGroups();
     fetchCode();
