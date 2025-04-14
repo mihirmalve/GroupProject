@@ -1,10 +1,12 @@
 // 👇 Updated Imports
 import { useNavigate, useParams } from "react-router-dom";
 import Editor from "@monaco-editor/react";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
+import SocketContext from "../context/socketContext";
 
 export default function GroupPage() {
+  const { socket } = React.useContext(SocketContext);
   const navigate = useNavigate();
   const [code, setCode] = useState("// Write your code here");
   const [output, setOutput] = useState("");
@@ -15,9 +17,69 @@ export default function GroupPage() {
   const [users, setUsers] = useState(["You", "U1", "U2", "U3"]);
   const [showGroupInfo, setShowGroupInfo] = useState(false);
 
+  const chatEndRef = useRef(null); // 🔥 Ref for auto-scrolling to bottom
+
+  const userId = localStorage.getItem("user-data")
+    ? JSON.parse(localStorage.getItem("user-data"))._id
+    : null;
+    const username = localStorage.getItem("user-data")
+    ? JSON.parse(localStorage.getItem("user-data")).username
+    : "";
+
   const { groupId } = useParams();
 
+  // Modify your existing useEffect for previous messages
+useEffect(() => {
+    if (!socket || !groupId) return;
   
+    socket.emit("joinGroup", groupId);
+  
+    socket.on("previousMessages", (msgs) => {
+      setMessages(msgs);
+      // Scroll to bottom immediately after loading previous messages
+      setTimeout(() => {
+        if (chatEndRef.current) {
+          chatEndRef.current.scrollIntoView({ behavior: "auto" });
+        }
+      }, 100); // Small timeout to ensure DOM updates
+    });
+  
+    socket.on("newMessage", (message) => {
+      setMessages((prev) => [...prev, message]);
+      console.log("Message received");
+    });
+  
+    return () => {
+      socket.emit("leaveGroup", groupId);
+    };
+  }, [socket, groupId]);
+  
+  // Keep your existing useEffect for smooth scrolling on new messages
+  useEffect(() => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
+
+  // 🔥 Scroll to bottom on message update
+  useEffect(() => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
+
+  const sendMessage = () => {
+    if (message.trim() === "") return;
+
+    socket.emit("sendMessage", {
+      username: username,
+      groupId,
+      messageContent: message,
+      userId,
+    });
+
+    setMessage("");
+  };
 
   const handleCompile = async () => {
     try {
@@ -81,31 +143,63 @@ export default function GroupPage() {
               Today
             </span>
           </div>
-          {messages.map((msg, idx) => (
-            <div
-              key={idx}
-              className={`flex items-start max-w-[85%] ${
-                msg.sender === "You" ? "flex-row-reverse self-end" : ""
-              }`}
-            >
+          {messages.map((msg, idx) => {
+            const isOwnMessage = msg.sender === userId;
+            const time = new Date(msg.createdAt).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+
+            return (
               <div
-                className={`h-6 w-6 rounded-full ${
-                  msg.sender === "You" ? "bg-red-600 ml-2" : "bg-blue-600 mr-2"
-                } flex items-center justify-center text-xs mt-0.5`}
-              >
-                {msg.sender[0]}
-              </div>
-              <div
-                className={`px-3 py-2 rounded-lg text-xs shadow-sm ${
-                  msg.sender === "You"
-                    ? "bg-red-900/30 rounded-tr-none"
-                    : "bg-neutral-800 rounded-tl-none"
+                key={idx}
+                className={`flex flex-col max-w-[85%] ${
+                  isOwnMessage ? "self-end items-end" : "items-start"
                 }`}
               >
-                {msg.text}
+                {/* Sender Name */}
+                <span className="text-[10px] text-neutral-400 mb-0.5">
+                  {isOwnMessage ? username : msg.sendername}
+                </span>
+
+                <div
+                  className={`flex items-start ${
+                    isOwnMessage ? "flex-row-reverse" : ""
+                  }`}
+                >
+                  {/* Avatar Circle */}
+                  <div
+                    className={`h-6 w-6 rounded-full ${
+                      isOwnMessage ? "bg-red-600 ml-2" : "bg-blue-600 mr-2"
+                    } flex items-center justify-center text-xs mt-0.5`}
+                  >
+                    {msg.sender[0]}
+                  </div>
+
+                  {/* Message Bubble with Timestamp */}
+                  <div
+                    className={`px-3 py-2 rounded-lg text-xs shadow-sm relative ${
+                      isOwnMessage
+                        ? "bg-red-900/30 rounded-tr-none"
+                        : "bg-neutral-800 rounded-tl-none"
+                    }`}
+                  >
+                    {msg.message}
+                    <div
+                      className={`text-[10px] text-neutral-500 mt-1 ${
+                        isOwnMessage ? "text-right" : "text-left"
+                      }`}
+                    >
+                      {time}
+                      
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
+          {/* 👇 Auto-scroll anchor */}
+          <div ref={chatEndRef} />
         </div>
 
         {/* Chat Input */}
@@ -119,15 +213,7 @@ export default function GroupPage() {
               className="w-full bg-neutral-800 text-white px-3 py-2 rounded text-xs focus:outline-none focus:ring-1 focus:ring-red-500 pr-8"
             />
             <button
-              onClick={() => {
-                if (message.trim()) {
-                  setMessages((prev) => [
-                    ...prev,
-                    { sender: "You", text: message },
-                  ]);
-                  setMessage("");
-                }
-              }}
+              onClick={sendMessage}
               className="absolute right-2 top-1.5 text-red-500 hover:text-red-400"
             >
               <svg
@@ -196,6 +282,7 @@ export default function GroupPage() {
             }}
           />
         </div>
+
         {/* Output/Input Area */}
         <div className="flex gap-4">
           <div className="w-[70%] bg-neutral-900 rounded-lg border border-neutral-700 text-sm h-40 overflow-auto shadow-sm flex flex-col">
