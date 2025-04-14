@@ -300,7 +300,7 @@ export default function GroupPage() {
               >
                 {/* Sender Name */}
                 <span className="text-[10px] text-neutral-400 mb-0.5">
-                  {isOwnMessage ? username : msg.sendername}
+                  {isOwnMessage ? username : msg.senderrname}
                 </span>
 
                 <div
