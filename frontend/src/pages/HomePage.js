@@ -43,7 +43,6 @@ function HomePage() {
 
   //useEffect to load groups
   useEffect(() => {
-   
     fetchGroups();
   }, []);
   
@@ -61,7 +60,7 @@ function HomePage() {
     }
   };
   const GroupClickHandler=(group)=>{
-   navigate(`/groups/${group._id}` );
+   navigate(`/groups/${group._id}`);
 
   }
 
@@ -73,6 +72,7 @@ function HomePage() {
   const [showCreateGroupPage, setShowCreateGroupPage] = useState(false);
   const [showJoinGroupPage, setShowJoinGroupPage] = useState(false);
   const [joinedGroups,setJoinedGroups]=useState([])
+
 
   // const joinedGroups = [
   //   "DSA Squad",

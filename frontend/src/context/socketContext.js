@@ -11,7 +11,7 @@ import React, {
     const [socket, setSocket] = useState(null);
     const [onlineUsers, setOnlineUsers] = useState([]);
     const user_data = localStorage.getItem("user-data"); 
-    const userId = user_data ? JSON.parse(user_data).user._id : null;
+    const userId = user_data ? JSON.parse(user_data)._id : null;
 
     useEffect(() => {  
       if (user_data) {

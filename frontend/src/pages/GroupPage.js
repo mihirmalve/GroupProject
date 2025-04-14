@@ -1,11 +1,11 @@
 // 👇 Updated Imports
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import Editor from "@monaco-editor/react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 
 export default function GroupPage() {
-    const navigate = useNavigate();
+  const navigate = useNavigate();
   const [code, setCode] = useState("// Write your code here");
   const [output, setOutput] = useState("");
   const [language, setLanguage] = useState("cpp");
@@ -14,6 +14,10 @@ export default function GroupPage() {
   const [messages, setMessages] = useState([]);
   const [users, setUsers] = useState(["You", "U1", "U2", "U3"]);
   const [showGroupInfo, setShowGroupInfo] = useState(false);
+
+  const { groupId } = useParams();
+
+  
 
   const handleCompile = async () => {
     try {
@@ -56,8 +60,10 @@ export default function GroupPage() {
       {/* Chat Sidebar */}
       <div className="w-[25%] border-r border-neutral-800 bg-neutral-950 flex flex-col shadow-lg transition-colors duration-200">
         <div className="p-3 border-b border-neutral-800 bg-neutral-900 flex items-center justify-between">
-          <button className="bg-red-600 hover:bg-red-700 transition-all text-white px-3 py-1.5 rounded text-xs shadow-md"
-            onClick={() => navigate("/home")}>
+          <button
+            className="bg-red-600 hover:bg-red-700 transition-all text-white px-3 py-1.5 rounded text-xs shadow-md"
+            onClick={() => navigate("/home")}
+          >
             ← Back to Home
           </button>
           <button
