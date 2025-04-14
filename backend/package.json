@@ -22,7 +22,9 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.13.2",
     "node-mailjet": "^6.0.8",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "y-websocket": "^3.0.0",
+    "yjs": "^13.6.24"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"

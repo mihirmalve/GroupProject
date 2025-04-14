@@ -2,8 +2,6 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
-import Avatar from 'react-avatar';
-
 
 export default function MyProfile() {
   const navigate = useNavigate();
@@ -11,7 +9,6 @@ export default function MyProfile() {
 
   const [groupToDelete, setGroupToDelete] = useState(null);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
-
 
   const [profilePic, setProfilePic] = useState(null);
   const [isImageSelected, setIsImageSelected] = useState(false); // To track if an image is selected
@@ -32,13 +29,16 @@ export default function MyProfile() {
     setProfilePic(null);
     setIsImageSelected(false); // Reset to show the avatar again
   };
-  
 
   const confirmDelete = async () => {
     try {
-      const res = await axios.post("http://localhost:8000/deleteGroup", { groupId: groupToDelete._id }, {
-        withCredentials: true,
-      });
+      const res = await axios.post(
+        "http://localhost:8000/deleteGroup",
+        { groupId: groupToDelete._id },
+        {
+          withCredentials: true,
+        }
+      );
       if (res.status === 200) {
         toast.success("Group deleted successfully");
         setUser((prev) => ({
@@ -66,9 +66,13 @@ export default function MyProfile() {
   useEffect(() => {
     const handleProfile = async () => {
       try {
-        const res = await axios.post("http://localhost:8000/getProfile", {}, {
-          withCredentials: true,
-        });
+        const res = await axios.post(
+          "http://localhost:8000/getProfile",
+          {},
+          {
+            withCredentials: true,
+          }
+        );
 
         if (res.status === 401) {
           navigate("/");
@@ -116,57 +120,50 @@ export default function MyProfile() {
           Home
         </button>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
         {/* Left Side: Profile & Basic Info */}
         <div className="flex flex-col items-center md:items-start">
           {/* Profile Pic */}
           {profilePic ? (
-          <img
-            src={profilePic}
-            alt="Profile"
-            className="w-40 h-40 rounded-full object-cover border-4 border-red-600 shadow-lg hover:border-red-500 transition-all duration-300"
-          />
-        ) : (
-          <Avatar
-          name={user.user.fullName ? user.user.fullName.charAt(0).toUpperCase() : "?"}
-          size="160"
-          round={true}
-          color="#000000"      // background inside circle: black
-          fgColor="#FF0000"    // initials: red
-          style={{
-            border: "4px solid #FF0000", // one clean outer red border
-           
-          }}
-        />
-        )}
-
-
+            <img
+              src={profilePic}
+              alt="Profile"
+              className="w-40 h-40 rounded-full object-cover border-4 border-red-600 shadow-lg hover:border-red-500 transition-all duration-300"
+            />
+          ) : (
+            <div className="w-40 h-40 rounded-full flex items-center justify-center bg-black border-4 border-red-600 shadow-lg text-red-500 text-5xl font-bold">
+              {user.user.fullName
+                ? user.user.fullName.charAt(0).toUpperCase()
+                : "?"}
+                
+            </div>
+          )}
 
           {/* Change button */}
           <div className="mt-6 w-full flex justify-center md:justify-start">
-           <input
-            type="file"
-            accept="image/*"
-            onChange={handleProfilePicChange}
-            className="hidden"
-            id="profile-pic-upload"
-          />
-          <label
-            htmlFor="profile-pic-upload"
-            className="cursor-pointer bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-full text-sm font-medium tracking-wide shadow-lg hover:shadow-red-900/50 transition-all duration-300"
-          >
-            Change Profile Picture
-          </label>
-
-          {isImageSelected && (
-            <button
-              onClick={handleDeleteProfilePic}
-              className="bg-black-700 hover:bg-gray-600 text-white px-5 py-2 rounded-full text-sm font-medium tracking-wide shadow-lg hover:shadow-red-900/50 transition-all duration-300"
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleProfilePicChange}
+              className="hidden"
+              id="profile-pic-upload"
+            />
+            <label
+              htmlFor="profile-pic-upload"
+              className="cursor-pointer bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-full text-sm font-medium tracking-wide shadow-lg hover:shadow-red-900/50 transition-all duration-300"
             >
-              Delete Photo
-            </button>
-          )}
+              Change Profile Picture
+            </label>
+
+            {isImageSelected && (
+              <button
+                onClick={handleDeleteProfilePic}
+                className="bg-black-700 hover:bg-gray-600 text-white px-5 py-2 rounded-full text-sm font-medium tracking-wide shadow-lg hover:shadow-red-900/50 transition-all duration-300"
+              >
+                Delete Photo
+              </button>
+            )}
           </div>
 
           {/* Basic Info */}
@@ -181,7 +178,9 @@ export default function MyProfile() {
                 <p className="text-xs uppercase tracking-wider text-gray-400 mb-1">
                   Name
                 </p>
-                <p className="text-lg font-medium text-white/90">{user.user.fullName}</p>
+                <p className="text-lg font-medium text-white/90">
+                  {user.user.fullName}
+                </p>
               </div>
               <div>
                 <p className="text-xs uppercase tracking-wider text-gray-400 mb-1">
@@ -203,7 +202,9 @@ export default function MyProfile() {
                 <p className="text-xs uppercase tracking-wider text-gray-400 mb-1">
                   Age
                 </p>
-                <p className="text-lg font-medium text-white/90">{user.user.age}</p>
+                <p className="text-lg font-medium text-white/90">
+                  {user.user.age}
+                </p>
               </div>
             </div>
           </div>
@@ -215,7 +216,7 @@ export default function MyProfile() {
             Groups Created
           </h2>
           <ul className="space-y-3">
-            {user?.user?.createdGroups?.length > 0  ? (
+            {user?.user?.createdGroups?.length > 0 ? (
               user.user.createdGroups.map((group) => (
                 <li
                   key={group._id}
@@ -225,7 +226,10 @@ export default function MyProfile() {
                     {group.name}
                   </span>
                   <button
-                    onClick={() => {setShowConfirmDelete(!showConfirmDelete); setGroupToDelete(group);}}
+                    onClick={() => {
+                      setShowConfirmDelete(!showConfirmDelete);
+                      setGroupToDelete(group);
+                    }}
                     className="text-gray-400 hover:text-red-500 p-2 rounded-full hover:bg-gray-700 transition-all duration-300"
                   >
                     <svg
@@ -263,7 +267,10 @@ export default function MyProfile() {
             </h3>
             <p className="text-gray-400 text-center mb-5">
               Are you sure you want to delete{" "}
-              <span className="font-medium text-white">"{groupToDelete.name}"</span>?
+              <span className="font-medium text-white">
+                "{groupToDelete.name}"
+              </span>
+              ?
             </p>
             <div className="flex justify-center gap-3">
               <button

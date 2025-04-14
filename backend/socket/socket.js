@@ -4,6 +4,7 @@ import express from "express";
 import cookie from "cookie";
 import messageModel from "../models/messageModel.js";
 import groupModel from "../models/groupModel.js";
+import * as Y from "yjs";
 
 const app = express();
 
@@ -18,6 +19,7 @@ const io = new Server(server, {
 });
 
 const userSocketMap = {}; // {userId: socketId}
+const yDocs = {}; // Store Yjs documents for each group
 
 const getReceiverSocketId = (receiverId) => {
   return userSocketMap[receiverId];
@@ -51,7 +53,7 @@ io.on("connection", (socket) => {
     userSocketMap[userId] = socket.id;
   }
 
-  // Emit when concect
+  // Emit when connect
   io.emit("getOnlineUsers", Object.keys(userSocketMap));
 
   // Join the group room
@@ -64,9 +66,38 @@ io.on("connection", (socket) => {
         return socket.emit("error", { message: "Group not found" });
       }
 
-      const group2 = await group.populate("messages");
-      socket.emit("previousMessages", group.messages);
+      // Create a Yjs document for this group if it doesn't exist
+      if (!yDocs[groupId]) {
+        yDocs[groupId] = new Y.Doc(); // Create new Yjs document
+      }
+
+      const yText = yDocs[groupId].getText("text");
+      
+      // Send the initial document state to the client
+      socket.emit("sync", yText.toString());
+
+      // Handle document updates from clients
+      socket.on("updateDocument", (update) => {
+        try {
+          // Convert Array from client back to Uint8Array for Yjs
+          const uint8Update = new Uint8Array(update);
+          
+          // Apply the update to the Yjs document
+          Y.applyUpdate(yDocs[groupId], uint8Update);
+
+          // Broadcast the update to all other clients in the group
+          socket.to(groupId).emit("documentUpdated", update);
+        } catch (error) {
+          console.error("Error applying Yjs update:", error);
+          socket.emit("error", { message: "Failed to update document" });
+        }
+      });
+
+      // Send previous messages
+      const populatedGroup = await group.populate("messages");
+      socket.emit("previousMessages", populatedGroup.messages);
     } catch (error) {
+      console.error("Error in joinGroup:", error);
       socket.emit("error", { message: error.message });
     }
   });
@@ -74,6 +105,8 @@ io.on("connection", (socket) => {
   // Leave the group room
   socket.on("leaveGroup", (groupId) => {
     socket.leave(groupId);
+    // Clean up Yjs document listeners for this socket
+    socket.removeAllListeners("updateDocument");
   });
 
   // When user is typing
@@ -108,20 +141,42 @@ io.on("connection", (socket) => {
       group.messages.push(message._id);
       await group.save();
 
-      // Emit the new message to all users in this group except sender
+      // Emit the new message to all users in this group
       io.to(groupId).emit("newMessage", message);
     } catch (error) {
+      console.error("Error sending message:", error);
       socket.emit("error", { message: "Failed to send the message." });
     }
   });
 
-  // socket.on() is used to listen to the events. can be used both on client and server side
+  // Handle disconnection
   socket.on("disconnect", () => {
     console.log("user disconnected", socket.id);
-    delete userSocketMap[userId];
-    // Emit when disconnect
+    
+    // Remove user from online users
+    if (userId != "undefined") {
+      delete userSocketMap[userId];
+    }
+    
+    // Emit updated online users list
     io.emit("getOnlineUsers", Object.keys(userSocketMap));
   });
 });
+
+// Add a cleanup mechanism for unused Yjs documents
+// This could be run periodically to save resources
+const cleanupUnusedDocs = () => {
+  for (const groupId in yDocs) {
+    const room = io.sockets.adapter.rooms.get(groupId);
+    // If room doesn't exist or is empty, clean up the document
+    if (!room || room.size === 0) {
+      console.log(`Cleaning up unused Yjs document for group ${groupId}`);
+      delete yDocs[groupId];
+    }
+  }
+};
+
+// Run cleanup every hour
+setInterval(cleanupUnusedDocs, 60 * 60 * 1000);
 
 export { app, io, server, getReceiverSocketId };

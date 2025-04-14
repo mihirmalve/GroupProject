@@ -1,9 +1,11 @@
-// 👇 Updated Imports
 import { useNavigate, useParams } from "react-router-dom";
 import Editor from "@monaco-editor/react";
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import SocketContext from "../context/socketContext";
+import * as Y from 'yjs';
+import { WebsocketProvider } from 'y-websocket';
+
 
 export default function GroupPage() {
   const { socket } = React.useContext(SocketContext);
@@ -16,20 +18,149 @@ export default function GroupPage() {
   const [messages, setMessages] = useState([]);
   const [users, setUsers] = useState(["You", "U1", "U2", "U3"]);
   const [showGroupInfo, setShowGroupInfo] = useState(false);
+  
+  // Refs for Yjs integration
+  const editorRef = useRef(null);
+  const ydocRef = useRef(null);
+  const yTextRef = useRef(null);
+  const undoManagerRef = useRef(null);
 
-  const chatEndRef = useRef(null); // 🔥 Ref for auto-scrolling to bottom
+  const chatEndRef = useRef(null); // Ref for auto-scrolling to bottom
 
   const userId = localStorage.getItem("user-data")
     ? JSON.parse(localStorage.getItem("user-data"))._id
     : null;
-    const username = localStorage.getItem("user-data")
+  const username = localStorage.getItem("user-data")
     ? JSON.parse(localStorage.getItem("user-data")).username
     : "";
 
   const { groupId } = useParams();
 
+  // Handle editor mounting
+  const handleEditorDidMount = (editor) => {
+    editorRef.current = editor;
+    
+    // Connect the editor with Yjs once the editor is mounted and ydoc is initialized
+    if (ydocRef.current && yTextRef.current) {
+      bindEditorToYjs(editor);
+    }
+  };
+
+  // Function to bind the Monaco editor with Yjs text
+  const bindEditorToYjs = (editor) => {
+    if (!editor || !yTextRef.current) return;
+    
+    // Get the Monaco model
+    const model = editor.getModel();
+    
+    // Initial content setup
+    model.setValue(yTextRef.current.toString());
+    
+    // Listen for changes in the editor and update the Yjs document
+    editor.onDidChangeModelContent((event) => {
+      // Only apply changes if they're from user input, not from Yjs
+      if (!event.isFlush) {
+        const editorContent = editor.getValue();
+        
+        // We need to avoid updating when the change comes from Yjs
+        // So we check if the content already matches
+        if (yTextRef.current.toString() !== editorContent) {
+          // Prevent infinite loop by temporarily disabling observer
+          yTextRef.current.delete(0, yTextRef.current.length);
+          yTextRef.current.insert(0, editorContent);
+        }
+      }
+    });
+    
+    // Listen for changes in the Yjs document and update the editor
+    yTextRef.current.observe(event => {
+      const editorContent = editor.getValue();
+      const yContent = yTextRef.current.toString();
+      
+      // Only update if the content has actually changed
+      if (editorContent !== yContent) {
+        const model = editor.getModel();
+        model.pushEditOperations(
+          [], 
+          [{ range: model.getFullModelRange(), text: yContent }], 
+          () => null
+        );
+      }
+    });
+  };
+
+  // Initialize Yjs document and setup synchronization
+  useEffect(() => {
+    if (!groupId || !socket) return;
+    
+    // Create a new Yjs document
+    const ydoc = new Y.Doc();
+    ydocRef.current = ydoc;
+    
+    // Get a shared text from the document to sync with our editor
+    const yText = ydoc.getText('text');
+    yTextRef.current = yText;
+    
+    // Create undo manager for the text
+    const undoManager = new Y.UndoManager(yText);
+    undoManagerRef.current = undoManager;
+
+    // Setup socket handlers for Yjs updates
+    socket.on("sync", (initialContent) => {
+      if (initialContent && yTextRef.current.toString() === "") {
+        yTextRef.current.insert(0, initialContent);
+      }
+    });
+
+    socket.on("documentUpdated", (update) => {
+      // Apply incoming updates to the Yjs document
+      Y.applyUpdate(ydocRef.current, new Uint8Array(update));
+    });
+    
+    // Bind editor if it's already mounted
+    if (editorRef.current) {
+      bindEditorToYjs(editorRef.current);
+    }
+
+    // Cleanup function
+    return () => {
+      socket.off("sync");
+      socket.off("documentUpdated");
+      ydocRef.current = null;
+      yTextRef.current = null;
+      undoManagerRef.current = null;
+    };
+  }, [groupId, socket]);
+
+  // Send updates to the server when the Yjs document changes
+  useEffect(() => {
+    if (!ydocRef.current || !socket || !groupId) return;
+
+    // Setup observer to send updates to server
+    const observer = () => {
+      // Create an update
+      const update = Y.encodeStateAsUpdate(ydocRef.current);
+      // Send the update to the server
+      socket.emit("updateDocument", Array.from(update));
+    };
+
+    // Register the observer
+    ydocRef.current.on('update', observer);
+
+    return () => {
+      if (ydocRef.current) {
+        ydocRef.current.off('update', observer);
+      }
+    };
+  }, [socket, groupId]);
+
+  // Handle code changes from the editor component
+  const handleCodeChange = (value) => {
+    setCode(value || "");
+  };
+
   // Modify your existing useEffect for previous messages
-useEffect(() => {
+  useEffect(() => {
     if (!socket || !groupId) return;
   
     socket.emit("joinGroup", groupId);
@@ -51,17 +182,12 @@ useEffect(() => {
   
     return () => {
       socket.emit("leaveGroup", groupId);
+      socket.off("previousMessages");
+      socket.off("newMessage");
     };
   }, [socket, groupId]);
   
-  // Keep your existing useEffect for smooth scrolling on new messages
-  useEffect(() => {
-    if (chatEndRef.current) {
-      chatEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages]);
-
-  // 🔥 Scroll to bottom on message update
+  // Scroll to bottom on message update
   useEffect(() => {
     if (chatEndRef.current) {
       chatEndRef.current.scrollIntoView({ behavior: "smooth" });
@@ -94,9 +220,24 @@ useEffect(() => {
     }
   };
 
+  // Handle key bindings for undo/redo
+  const handleEditorKeyDown = (event) => {
+    // Handle Ctrl+Z for undo
+    if (event.ctrlKey && event.key === 'z' && !event.shiftKey && undoManagerRef.current) {
+      undoManagerRef.current.undo();
+      event.preventDefault();
+    }
+    // Handle Ctrl+Shift+Z or Ctrl+Y for redo
+    if ((event.ctrlKey && event.shiftKey && event.key === 'z') || 
+        (event.ctrlKey && event.key === 'y')) {
+      undoManagerRef.current.redo();
+      event.preventDefault();
+    }
+  };
+
   return (
     <div className="flex h-screen bg-black text-white font-mono relative">
-      {/* 🔥 Group Info Drawer (Slide-In) */}
+      {/* Group Info Drawer (Slide-In) */}
       {showGroupInfo && (
         <div className="absolute left-0 top-0 bottom-0 w-[250px] bg-neutral-950 border-r border-neutral-800 z-10 shadow-lg transition-transform duration-300">
           <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-800 bg-neutral-900">
@@ -198,7 +339,7 @@ useEffect(() => {
               </div>
             );
           })}
-          {/* 👇 Auto-scroll anchor */}
+          {/* Auto-scroll anchor */}
           <div ref={chatEndRef} />
         </div>
 
@@ -231,7 +372,7 @@ useEffect(() => {
 
       {/* Main Editor Area */}
       <div className="flex-1 p-4 flex flex-col space-y-3">
-        {/* 🔘 Controls */}
+        {/* Controls */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <select
@@ -265,15 +406,25 @@ useEffect(() => {
               Compile & Run
             </button>
           </div>
+          <div className="flex items-center gap-2">
+            <div className="text-green-400 text-xs flex items-center">
+              <div className="h-2 w-2 bg-green-500 rounded-full mr-1"></div>
+              <span>Collaborative Mode Active</span>
+            </div>
+          </div>
         </div>
 
         {/* Code Editor */}
-        <div className="flex-1 border border-neutral-700 rounded-xl overflow-hidden shadow-md">
+        <div 
+          className="flex-1 border border-neutral-700 rounded-xl overflow-hidden shadow-md"
+          onKeyDown={handleEditorKeyDown}
+        >
           <Editor
             height="100%"
             language={language}
             value={code}
-            onChange={(val) => setCode(val || "")}
+            onChange={handleCodeChange}
+            onMount={handleEditorDidMount}
             theme="vs-dark"
             options={{
               fontSize: 14,
