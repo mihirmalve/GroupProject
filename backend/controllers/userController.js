@@ -91,6 +91,50 @@ class UserController {
     }
   }
 
+  // Save code
+  async saveCode(req, res) {
+    try {
+      const { code } = req.body;
+      const token = req.cookies.jwt;
+      if (!token) {
+        return res.status(401).json({ error: "No token provided" });
+      }
+      const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+      const user_id = decoded.userId;
+      const user = await User.findById(user_id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      user.code = code;
+      await user.save();
+      console.log(`Code saved successfully in ${code}`);
+      res.status(200).json({ message: "Code saved successfully" });
+    } catch (error) {
+      console.log("Error in saveCode controller", error.message);
+      res.json({ error: "Could not save the code" });
+    }
+  }
+
+  // Fetch code
+  async getCode(req, res) {
+    try {
+      const token = req.cookies.jwt;
+      if (!token) {
+        return res.status(401).json({ error: "No token provided" });
+      }
+      const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+      const user_id = decoded.userId;
+      const user = await User.findById(user_id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      res.status(200).json({ code: user.code });
+    } catch (error) {
+      console.log("Error in getCode controller", error.message);
+      res.json({ error: "Could not fetch the code" });
+    }
+  }
+
   // Fetch groups the user has joined or created
   async getUserGroups(req, res) {
     try {

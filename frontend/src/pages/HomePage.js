@@ -5,9 +5,11 @@ import axios from "axios";
 import CreateGroupPage from "./CreateGroupPage";
 import JoinGroupPage from "./JoinGroupPage";
 import { useNavigate } from "react-router-dom";
+import { useCallback } from "react";
+
 function HomePage() {
   const navigate = useNavigate();
-  
+
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -26,11 +28,16 @@ function HomePage() {
     };
     fetchUser();
   }, []);
+
   const fetchGroups = async () => {
     try {
-      const res = await axios.post("http://localhost:8000/groups",{}, {
-        withCredentials: true,
-      });
+      const res = await axios.post(
+        "http://localhost:8000/groups",
+        {},
+        {
+          withCredentials: true,
+        }
+      );
       const data = res.data;
 
       // ✅ Merge created and joined groups
@@ -41,12 +48,51 @@ function HomePage() {
     }
   };
 
+  const fetchCode = async () => {
+    try {
+      const res = await axios.post(
+        "http://localhost:8000/getCode",
+        {},
+        {
+          withCredentials: true,
+        }
+      );
+      const data = res.data;
+      setCode(data.code); 
+    } catch (err) {
+      console.error("Failed to fetch code", err);
+    }
+  };
+
   //useEffect to load groups
   useEffect(() => {
     fetchGroups();
+    fetchCode();
   }, []);
-  
-  
+
+  const debounce = (func, delay) => {
+    let timer;
+    return (...args) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => func(...args), delay);
+    };
+  };
+
+  const saveCodeToBackend = useCallback(
+    debounce(async (code) => {
+      try {
+        await axios.post(
+          "http://localhost:8000/saveCode",
+          { code },
+          { withCredentials: true }
+        );
+        console.log("Code saved");
+      } catch (err) {
+        console.error("Failed to save code", err);
+      }
+    }, 1000),
+    []
+  );
 
   const handleLogout = async () => {
     try {
@@ -59,10 +105,9 @@ function HomePage() {
       console.log(err);
     }
   };
-  const GroupClickHandler=(group)=>{
-   navigate(`/groups/${group._id}`);
-
-  }
+  const GroupClickHandler = (group) => {
+    navigate(`/groups/${group._id}`);
+  };
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [code, setCode] = useState("// Write your code here");
@@ -71,8 +116,7 @@ function HomePage() {
   const [input, setInput] = useState("");
   const [showCreateGroupPage, setShowCreateGroupPage] = useState(false);
   const [showJoinGroupPage, setShowJoinGroupPage] = useState(false);
-  const [joinedGroups,setJoinedGroups]=useState([])
-
+  const [joinedGroups, setJoinedGroups] = useState([]);
 
   // const joinedGroups = [
   //   "DSA Squad",
@@ -111,14 +155,14 @@ function HomePage() {
         <CreateGroupPage
           show={showCreateGroupPage}
           setShow={setShowCreateGroupPage}
-          refreshGroups={fetchGroups} 
+          refreshGroups={fetchGroups}
         />
       )}
       {showJoinGroupPage && (
         <JoinGroupPage
           show={showJoinGroupPage}
           setShow={setShowJoinGroupPage}
-          refreshGroups={fetchGroups} 
+          refreshGroups={fetchGroups}
         />
       )}
       <div className="relative flex items-center justify-between px-4 py-3 border-b border-neutral-800 bg-neutral-900">
@@ -144,7 +188,10 @@ function HomePage() {
         {/* Dropdown */}
         {menuOpen && (
           <div className="absolute top-14 left-4 w-44 rounded-md shadow-md bg-neutral-800 border border-neutral-700 z-50">
-            <div className="px-4 py-2 hover:bg-neutral-700 cursor-pointer transition" onClick={() => navigate("/profile")}>
+            <div
+              className="px-4 py-2 hover:bg-neutral-700 cursor-pointer transition"
+              onClick={() => navigate("/profile")}
+            >
               My Profile
             </div>
             <div
@@ -178,7 +225,9 @@ function HomePage() {
               <li
                 key={index}
                 className="bg-neutral-800 p-2 rounded hover:bg-neutral-700 cursor-pointer text-sm"
-                onClick={()=>{GroupClickHandler(group)}}
+                onClick={() => {
+                  GroupClickHandler(group);
+                }}
               >
                 {group.name}
               </li>
@@ -216,7 +265,11 @@ function HomePage() {
               height="100%"
               language={language}
               value={code}
-              onChange={(val) => setCode(val || "")}
+              onChange={(val) => {
+                const updatedCode = val || "";
+                setCode(updatedCode);
+                saveCodeToBackend(updatedCode);
+              }}
               theme="vs-dark"
               options={{
                 fontSize: 14,
