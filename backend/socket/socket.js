@@ -91,10 +91,11 @@ io.on("connection", (socket) => {
   // When user send message
   socket.on("sendMessage", async (data) => {
     try {
-      const { groupId, messageContent, userId } = data;
+      const { username, groupId, messageContent, userId } = data;
 
       // Save the message to the database
       const message = new messageModel({
+        sendername: username,
         sender: userId,
         group: groupId,
         message: messageContent,

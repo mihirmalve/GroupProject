@@ -1,6 +1,10 @@
 import mongoose,{Schema} from "mongoose";
 
 const messageModel = new mongoose.Schema({
+    sendername: {
+        type: String,
+        required: true
+    },
     sender: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
