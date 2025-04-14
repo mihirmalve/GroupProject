@@ -108,7 +108,7 @@ io.on("connection", (socket) => {
       group.messages.push(message._id);
       await group.save();
 
-      // Emit the new message to all users in this group except the sender
+      // Emit the new message to all users in this group except sender
       io.to(groupId).emit("newMessage", message);
     } catch (error) {
       socket.emit("error", { message: "Failed to send the message." });
