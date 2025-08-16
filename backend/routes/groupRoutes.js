@@ -8,8 +8,4 @@ router.post("/info", GroupController.getGroupInfo);
 router.post("/kick", GroupController.kickUser);
 router.post("/leave", GroupController.leaveGroup);
 
-
-// 🔜 Leave group route will go here in future
-// router.post("/leave", protect, GroupController.leaveGroup);
-
 export default router;
