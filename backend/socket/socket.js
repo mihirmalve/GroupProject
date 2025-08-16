@@ -60,6 +60,8 @@ io.on("connection", (socket) => {
 
   // Emit when connect
   io.emit("getOnlineUsers", Object.keys(userSocketMap));
+  console.log("Emitted online users:", Object.keys(userSocketMap));
+
 
   // Join the group room
   socket.on("joinGroup", async (groupId) => {
@@ -189,6 +191,8 @@ io.on("connection", (socket) => {
     
     // Emit updated online users list
     io.emit("getOnlineUsers", Object.keys(userSocketMap));
+    console.log("Emitted online users:", Object.keys(userSocketMap));
+
   });
 });
 

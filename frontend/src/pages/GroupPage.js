@@ -6,6 +6,8 @@ import SocketContext from "../context/socketContext";
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import GroupInfo from "./GroupInfo";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 
 export default function GroupPage() {
@@ -17,7 +19,7 @@ export default function GroupPage() {
   const [input, setInput] = useState("");
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
-  const [users, setUsers] = useState(["You", "U1", "U2", "U3"]);
+  const [onlineUsers, setOnlineUsers] = useState([]);
   const [showGroupInfo, setShowGroupInfo] = useState(false);
   
   // Refs for Yjs integration
@@ -180,6 +182,11 @@ export default function GroupPage() {
       setMessages((prev) => [...prev, message]);
       console.log("Message received");
     });
+
+    socket.on("getOnlineUsers", (users) => {
+      console.log("Online users:", users);
+      setOnlineUsers(users); // users is an array of userIds
+    });
   
     return () => {
       socket.emit("leaveGroup", groupId);
@@ -239,7 +246,7 @@ export default function GroupPage() {
   return (
     <div className="flex h-screen bg-black text-white font-mono relative">
       {/* Group Info Drawer (Slide-In) */}
-      {showGroupInfo && <GroupInfo groupId={groupId} userId={userId} setShowGroupInfo={setShowGroupInfo} />}
+      {showGroupInfo && <GroupInfo groupId={groupId} userId={userId} setShowGroupInfo={setShowGroupInfo} onlineUsers={onlineUsers} />}
 
       {/* Chat Sidebar */}
       <div className="w-[25%] border-r border-neutral-800 bg-neutral-950 flex flex-col shadow-lg transition-colors duration-200">
@@ -306,7 +313,12 @@ export default function GroupPage() {
                         : "bg-neutral-800 rounded-tl-none"
                     }`}
                   >
-                    {msg.message}
+                    <div className="prose prose-invert max-w-none text-xs">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {msg.message}
+                      </ReactMarkdown>
+                    </div>
+
                     <div
                       className={`text-[10px] text-neutral-500 mt-1 ${
                         isOwnMessage ? "text-right" : "text-left"

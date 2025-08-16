@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom"; // CORRECTED: Import the 'useNavigate' hook
 
-const GroupInfo = ({ groupId, userId, setShowGroupInfo }) => {
+const GroupInfo = ({ groupId, userId, setShowGroupInfo, onlineUsers }) => {
   const [members, setMembers] = useState([]);
   const [adminId, setAdminId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -86,7 +86,7 @@ const GroupInfo = ({ groupId, userId, setShowGroupInfo }) => {
                 </div>
                 <div
                   className={`absolute bottom-0 right-0 h-2 w-2 rounded-full border-2 border-neutral-900 ${
-                    member.isOnline ? "bg-green-500" : "bg-gray-500"
+                    onlineUsers.includes(member._id) ?  "bg-green-500" : "bg-gray-500"
                   }`}
                 ></div>
               </div>
