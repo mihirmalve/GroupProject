@@ -10,8 +10,6 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useCallback } from "react";
 
-
-// ... all your imports remain the same
 export default function GroupPage() {
   const { socket } = React.useContext(SocketContext);
   const navigate = useNavigate();
