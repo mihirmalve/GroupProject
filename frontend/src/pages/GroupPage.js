@@ -5,6 +5,7 @@ import axios from "axios";
 import SocketContext from "../context/socketContext";
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
+import GroupInfo from "./GroupInfo";
 
 
 export default function GroupPage() {
@@ -238,27 +239,7 @@ export default function GroupPage() {
   return (
     <div className="flex h-screen bg-black text-white font-mono relative">
       {/* Group Info Drawer (Slide-In) */}
-      {showGroupInfo && (
-        <div className="absolute left-0 top-0 bottom-0 w-[250px] bg-neutral-950 border-r border-neutral-800 z-10 shadow-lg transition-transform duration-300">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-800 bg-neutral-900">
-            <h2 className="text-sm font-bold text-red-500">Group Members</h2>
-            <button
-              onClick={() => setShowGroupInfo(false)}
-              className="text-red-400 hover:text-red-300 text-sm"
-            >
-              ✕
-            </button>
-          </div>
-          <div className="p-3 overflow-y-auto scrollbar-thin scrollbar-thumb-red-700 scrollbar-track-transparent text-xs space-y-2">
-            {users.map((user, idx) => (
-              <div key={idx} className="flex items-center space-x-2">
-                <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-                <span>{user}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {showGroupInfo && <GroupInfo groupId={groupId} userId={userId} setShowGroupInfo={setShowGroupInfo} />}
 
       {/* Chat Sidebar */}
       <div className="w-[25%] border-r border-neutral-800 bg-neutral-950 flex flex-col shadow-lg transition-colors duration-200">
@@ -270,7 +251,7 @@ export default function GroupPage() {
             ← Back to Home
           </button>
           <button
-            onClick={() => setShowGroupInfo(true)}
+            onClick={() => setShowGroupInfo(!showGroupInfo)}
             className="text-xs text-red-400 hover:text-red-300 underline"
           >
             Group Info

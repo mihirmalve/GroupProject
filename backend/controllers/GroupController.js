@@ -1,5 +1,4 @@
-import bcrypt from "bcryptjs"; // Make sure this is installed
-import Group from "../models/groupModel.js";
+import bcrypt from "bcryptjs"; 
 import jwt from "jsonwebtoken";
 import userModel from "../models/userModel.js";
 import groupModel from "../models/groupModel.js";
@@ -17,7 +16,7 @@ class GroupController {
       const hashedPassword = await bcrypt.hash(password, salt);
       const user = await userModel.findById( user_id );
       
-      const newGroup = await Group.create({
+      const newGroup = await groupModel.create({
         name,
         description,
         admin: user_id,
@@ -79,5 +78,92 @@ class GroupController {
       res.status(500).json({ message: "Server error" });
     }
   }   
+  
+  // In your controller file
+
+async getGroupInfo(req, res) {
+  try {
+    const { groupId } = req.body;
+    
+    const group = await groupModel
+      .findById(groupId)
+      .populate("members", "_id username "); 
+
+    if (!group) {
+      return res.status(404).json({ message: "Group not found" });
+    }
+    
+    res.status(200).json(group);
+  } catch (err) {
+    console.error("Error getting group info:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+}
+async kickUser(req,res){
+  try {
+    const { groupId, userId } = req.body;
+    const group = await groupModel.findById(groupId);
+    const user = await userModel.findById(userId); 
+    if (!group) {
+      return res.status(404).json({ message: "Group not found" });
+    }
+    group.members.pull(userId);
+    user.joinedGroups.pull(groupId);
+    await group.save();
+    res.status(200).json({ message: "User kicked successfully" });
+  } catch (err) {
+    console.error("Error kicking user:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+}
+async leaveGroup(req, res) {
+  try {
+    const { groupId } = req.body;
+    const token = req.cookies.jwt;
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    const user_id = decoded.userId;
+
+    // Fetch both the group and the user at the same time
+   
+    const group = await groupModel.findById(groupId);
+    const user = await userModel.findById(user_id); // NEW: Fetch the user
+
+    if (!group) {
+      return res.status(404).json({ message: "Group not found" });
+    }
+    if (!user) { // NEW: Add a check for the user
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Check if the user is the admin of the group
+    if (group.admin.toString() === user_id) {
+      const newAdmin = group.members.find((member) => member.toString() !== user_id);
+     
+      if (newAdmin) {
+        group.admin = newAdmin;
+      } else {
+       
+        // If the admin is the last member, delete the group
+        await groupModel.findByIdAndDelete(groupId);
+        // Also remove the group from the user's list before responding
+        user.joinedGroups.pull(groupId); 
+        await user.save();             
+        return res.status(200).json({ message: "Group deleted successfully" });
+      }
+    }
+
+    // Remove the user from the group's members array
+    group.members.pull(user_id);
+    user.joinedGroups.pull(groupId);
+
+    await Promise.all([group.save(), user.save()]);
+
+    res.status(200).json({ message: "User left group successfully" });
+  } catch (err) {
+    console.error("Error leaving group:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
 }
 export default new GroupController();
