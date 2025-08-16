@@ -5,6 +5,11 @@ import cookie from "cookie";
 import messageModel from "../models/messageModel.js";
 import groupModel from "../models/groupModel.js";
 import * as Y from "yjs";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import mongoose from "mongoose";
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 const app = express();
 
@@ -143,6 +148,30 @@ io.on("connection", (socket) => {
 
       // Emit the new message to all users in this group
       io.to(groupId).emit("newMessage", message);
+
+      if (messageContent.startsWith("@metaAI")) {
+        const userQuery = messageContent.replace("@metaAI", "").trim();
+
+        // Get Gemini reply
+        const result = await model.generateContent(userQuery);
+        const geminiReply = result.response.text();
+
+        // Create Gemini message
+        const aiMessage = new messageModel({
+          sendername: "MetaAI",
+          sender: new mongoose.Types.ObjectId(process.env.GEMINI_USER_ID), // create/store a dummy AI user in your DB
+          group: groupId,
+          message: geminiReply
+        });
+
+        await aiMessage.save();
+
+        group.messages.push(aiMessage._id);
+        await group.save();
+
+        // Emit Gemini reply
+        io.to(groupId).emit("newMessage", aiMessage);
+      }
     } catch (error) {
       console.error("Error sending message:", error);
       socket.emit("error", { message: "Failed to send the message." });

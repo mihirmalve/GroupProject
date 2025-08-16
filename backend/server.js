@@ -4,7 +4,6 @@ import otpRoutes from './routes/otpRoutes.js'
 import authRoutes from './routes/authRoutes.js'
 import groupRoutes from "./routes/groupRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
-import geminiRoutes from "./routes/geminiRoutes.js";
 
 import express from 'express';
 import cors from "cors"
@@ -39,8 +38,6 @@ app.use('/',compileRoutes)
 app.use('/',otpRoutes)
 app.use('/',groupRoutes)
 app.use('/',userRoutes)
-app.use("/gemini", geminiRoutes);
-
 
 server.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
