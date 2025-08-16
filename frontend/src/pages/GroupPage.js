@@ -170,7 +170,6 @@ export default function GroupPage() {
   
     socket.on("previousMessages", (msgs) => {
       setMessages(msgs);
-      // Scroll to bottom immediately after loading previous messages
       setTimeout(() => {
         if (chatEndRef.current) {
           chatEndRef.current.scrollIntoView({ behavior: "auto" });
@@ -302,7 +301,7 @@ export default function GroupPage() {
                       isOwnMessage ? "bg-red-600 ml-2" : "bg-blue-600 mr-2"
                     } flex items-center justify-center text-xs mt-0.5`}
                   >
-                    {msg.sender[0]}
+                    {msg.sendername ? msg.sendername[0].toUpperCase() : 'U'}
                   </div>
 
                   {/* Message Bubble with Timestamp */}
