@@ -8,12 +8,14 @@ import { WebsocketProvider } from 'y-websocket';
 import GroupInfo from "./GroupInfo";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useCallback } from "react";
 
 
+// ... all your imports remain the same
 export default function GroupPage() {
   const { socket } = React.useContext(SocketContext);
   const navigate = useNavigate();
-  const [code, setCode] = useState("// Write your code here");
+  const [codes, setCodes] = useState({});
   const [output, setOutput] = useState("");
   const [language, setLanguage] = useState("cpp");
   const [input, setInput] = useState("");
@@ -21,14 +23,12 @@ export default function GroupPage() {
   const [messages, setMessages] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [showGroupInfo, setShowGroupInfo] = useState(false);
-  
-  // Refs for Yjs integration
+
   const editorRef = useRef(null);
   const ydocRef = useRef(null);
   const yTextRef = useRef(null);
   const undoManagerRef = useRef(null);
-
-  const chatEndRef = useRef(null); // Ref for auto-scrolling to bottom
+  const chatEndRef = useRef(null);
 
   const userId = localStorage.getItem("user-data")
     ? JSON.parse(localStorage.getItem("user-data"))._id
@@ -39,128 +39,144 @@ export default function GroupPage() {
 
   const { groupId } = useParams();
 
-  // Handle editor mounting
-  const handleEditorDidMount = (editor) => {
-    editorRef.current = editor;
-    
-    // Connect the editor with Yjs once the editor is mounted and ydoc is initialized
-    if (ydocRef.current && yTextRef.current) {
-      bindEditorToYjs(editor);
-    }
-  };
+  // --- NEW: bind editor to Yjs properly ---
+  const bindEditorToYjs = useCallback((editor, yText) => {
+    if (!editor || !yText) return;
 
-  // Function to bind the Monaco editor with Yjs text
-  const bindEditorToYjs = (editor) => {
-    if (!editor || !yTextRef.current) return;
-    
-    // Get the Monaco model
     const model = editor.getModel();
-    
-    // Initial content setup
-    model.setValue(yTextRef.current.toString());
-    
-    // Listen for changes in the editor and update the Yjs document
-    editor.onDidChangeModelContent((event) => {
-      // Only apply changes if they're from user input, not from Yjs
-      if (!event.isFlush) {
-        const editorContent = editor.getValue();
-        
-        // We need to avoid updating when the change comes from Yjs
-        // So we check if the content already matches
-        if (yTextRef.current.toString() !== editorContent) {
-          // Prevent infinite loop by temporarily disabling observer
-          yTextRef.current.delete(0, yTextRef.current.length);
-          yTextRef.current.insert(0, editorContent);
-        }
+    model.setValue(yText.toString());
+
+    // Flag to prevent loop
+    let updatingFromYjs = false;
+
+    // Editor changes → Yjs
+    const editorListener = editor.onDidChangeModelContent((event) => {
+      if (updatingFromYjs) return;
+      const value = editor.getValue();
+      if (yText.toString() !== value) {
+        yText.doc.transact(() => {
+          yText.delete(0, yText.length);
+          yText.insert(0, value);
+        });
       }
     });
-    
-    // Listen for changes in the Yjs document and update the editor
-    yTextRef.current.observe(event => {
-      const editorContent = editor.getValue();
-      const yContent = yTextRef.current.toString();
-      
-      // Only update if the content has actually changed
-      if (editorContent !== yContent) {
-        const model = editor.getModel();
+
+    const yjsObserver = (event) => {
+      const yContent = yText.toString();
+      if (model.getValue() !== yContent) {
+        const cursor = editor.getPosition();
+        updatingFromYjs = true;
         model.pushEditOperations(
-          [], 
-          [{ range: model.getFullModelRange(), text: yContent }], 
-          () => null
+          [],
+          [{ range: model.getFullModelRange(), text: yContent }],
+          () => [cursor] // restore cursor
         );
+        updatingFromYjs = false;
       }
-    });
-  };
-
-  // Initialize Yjs document and setup synchronization
-  useEffect(() => {
-    if (!groupId || !socket) return;
-    
-    // Create a new Yjs document
-    const ydoc = new Y.Doc();
-    ydocRef.current = ydoc;
-    
-    // Get a shared text from the document to sync with our editor
-    const yText = ydoc.getText('text');
-    yTextRef.current = yText;
-    
-    // Create undo manager for the text
-    const undoManager = new Y.UndoManager(yText);
-    undoManagerRef.current = undoManager;
-
-    // Setup socket handlers for Yjs updates
-    socket.on("sync", (initialContent) => {
-      if (initialContent && yTextRef.current.toString() === "") {
-        yTextRef.current.insert(0, initialContent);
-      }
-    });
-
-    socket.on("documentUpdated", (update) => {
-      // Apply incoming updates to the Yjs document
-      Y.applyUpdate(ydocRef.current, new Uint8Array(update));
-    });
-    
-    // Bind editor if it's already mounted
-    if (editorRef.current) {
-      bindEditorToYjs(editorRef.current);
-    }
+    };
+    yText.observe(yjsObserver);
 
     // Cleanup function
     return () => {
-      socket.off("sync");
-      socket.off("documentUpdated");
+      editorListener.dispose();
+      yText.unobserve(yjsObserver);
+    };
+  }, []);
+
+  const handleEditorDidMount = (editor) => {
+    editorRef.current = editor;
+    if (ydocRef.current && yTextRef.current) {
+      bindEditorToYjs(editor, yTextRef.current)();
+    }
+  };
+
+  useEffect(() => {
+    if (!groupId || !socket) return;
+
+    const ydoc = new Y.Doc();
+    const yText = ydoc.getText("text");
+    const undoManager = new Y.UndoManager(yText);
+
+    ydocRef.current = ydoc;
+    yTextRef.current = yText;
+    undoManagerRef.current = undoManager;
+
+    // Socket callbacks
+    const handleSync = (initialContent) => {
+      if (initialContent && yText.toString() === "") {
+        yText.insert(0, initialContent);
+      }
+    };
+
+    const handleDocumentUpdate = (update) => {
+      Y.applyUpdate(ydoc, new Uint8Array(update));
+    };
+
+    socket.on("sync", handleSync);
+    socket.on("documentUpdated", handleDocumentUpdate);
+
+    let unbindEditor = null;
+    if (editorRef.current) {
+      unbindEditor = bindEditorToYjs(editorRef.current, yText);
+    }
+
+    return () => {
+      socket.off("sync", handleSync);
+      socket.off("documentUpdated", handleDocumentUpdate);
+      if (unbindEditor) unbindEditor();
+      ydoc.destroy();
       ydocRef.current = null;
       yTextRef.current = null;
       undoManagerRef.current = null;
     };
-  }, [groupId, socket]);
+  }, [groupId, socket, bindEditorToYjs]);
 
-  // Send updates to the server when the Yjs document changes
   useEffect(() => {
     if (!ydocRef.current || !socket || !groupId) return;
 
-    // Setup observer to send updates to server
     const observer = () => {
-      // Create an update
       const update = Y.encodeStateAsUpdate(ydocRef.current);
-      // Send the update to the server
       socket.emit("updateDocument", Array.from(update));
     };
-
-    // Register the observer
-    ydocRef.current.on('update', observer);
+    ydocRef.current.on("update", observer);
 
     return () => {
-      if (ydocRef.current) {
-        ydocRef.current.off('update', observer);
-      }
+      if (ydocRef.current) ydocRef.current.off("update", observer);
     };
   }, [socket, groupId]);
 
-  // Handle code changes from the editor component
-  const handleCodeChange = (value) => {
-    setCode(value || "");
-  };
+
+
+  const fetchCodeGroup = async (lang) => {
+  try {
+    const res = await axios.post(
+      "http://localhost:8000/getCodeGroup",
+      { language: lang, groupId },
+      { withCredentials: true }
+    );
+
+    const data = res.data;
+    const initialCode = data.code || "// Write your code here";
+
+    // Update local state
+    setCodes((prev) => ({ ...prev, [lang]: initialCode }));
+
+    // ALSO update Yjs text
+    if (yTextRef.current && yTextRef.current.toString() === "") {
+      yTextRef.current.insert(0, initialCode);
+    }
+
+  } catch (err) {
+    console.error("Failed to fetch code", err);
+  }
+};
+
+
+  useEffect(() => {
+    if (language) {
+      fetchCodeGroup(language);
+    }
+  }, [language]);
 
   // Modify your existing useEffect for previous messages
   useEffect(() => {
@@ -215,16 +231,47 @@ export default function GroupPage() {
     setMessage("");
   };
 
+  const debounce = (func, delay) => {
+      let timer;
+      return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => func(...args), delay);
+      };
+    };
+  
+    const saveCodeToBackend = useCallback(
+      debounce(async (lang, code) => {
+        try {
+          await axios.post(
+            "http://localhost:8000/saveCodeGroup",
+            { language: lang, code, groupId },
+            { withCredentials: true }
+          );
+          console.log("Code saved");
+        } catch (err) {
+          console.error("Failed to save code", err);
+        }
+      }, 1000),
+      []
+    );
+
   const handleCompile = async () => {
     try {
       const res = await axios.post("http://localhost:8000/compile", {
-        code,
+        code: codes[language] || "",
         language,
         input,
       });
+      console.log(res);
+
       setOutput(res.data.output || res.data.error);
     } catch (err) {
-      setOutput(err.response?.data?.error || "An unknown error occurred.");
+      // have to handle the time limit excedded properly
+      if (err.response || err.response.data || err.response.data.error) {
+        setOutput(err.response.data.error);
+      } else {
+        setOutput("An unknown error occurred.");
+      }
     }
   };
 
@@ -427,8 +474,12 @@ export default function GroupPage() {
           <Editor
             height="100%"
             language={language}
-            value={code}
-            onChange={handleCodeChange}
+            value={codes[language] || ""}
+              onChange={(val) => {
+                const updatedCode = val || "";
+                setCodes((prev) => ({ ...prev, [language]: updatedCode }));
+                saveCodeToBackend(language, updatedCode);
+              }}
             onMount={handleEditorDidMount}
             theme="vs-dark"
             options={{

@@ -8,5 +8,7 @@ router.post("/join", GroupController.joinGroup);
 router.post("/info", GroupController.getGroupInfo);
 router.post("/kick", GroupController.kickUser);
 router.post("/leave", GroupController.leaveGroup);
+router.post("/saveCodeGroup", GroupController.saveCodeGroup);
+router.post("/getCodeGroup", GroupController.getCodeGroup);
 
 export default router;

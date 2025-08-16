@@ -19,7 +19,8 @@ const groupModel = new mongoose.Schema({
     }],
     codes: {
         type: Map,   
-        of: String   
+        of: String,
+        default: {} 
     },
     language: {
         type: String

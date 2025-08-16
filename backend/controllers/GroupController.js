@@ -36,6 +36,46 @@ class GroupController {
     }
   }
 
+  async saveCodeGroup(req, res) {
+    try {
+        const { language, code, groupId } = req.body;
+        if (!language) {
+          return res.status(400).json({ error: "Language is required" });
+        }
+          
+          const group = await groupModel.findById(groupId);
+          if (!group) {
+            return res.status(404).json({ error: "Group not found" });
+          }
+          
+          group.codes.set(language, code);
+        await group.save();
+          console.log(`Code saved successfully for ${language}`);
+          res.status(200).json({ message: "Code saved successfully" });
+        } catch (error) {
+          console.log("Error in saveCodeGroup controller", error.message);
+          res.json({ error: "Could not save the code" });
+        }
+  }
+
+  async getCodeGroup(req, res) {
+    try {
+      const { language, groupId } = req.body;
+      const group = await groupModel.findById(groupId);
+      if (!group) {
+        return res.status(404).json({ error: "Group not found" });
+      }
+    if (!language) {
+      return res.status(400).json({ error: "Language is required" });
+    }
+      const code = group.codes?.get(language) || "";
+    res.status(200).json({ code });
+    } catch (error) {
+      console.log("Error in getCode controller", error.message);
+      res.json({ error: "Could not fetch the code" });
+    }
+  }
+
   async joinGroup(req, res) {
     try {
       const { name, password } = req.body;
