@@ -1,0 +1,51 @@
+# =========================
+# Dependencies
+# =========================
+/backend/node_modules
+/frontend/node_modules
+/.pnp
+.pnp.js
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# =========================
+# Build / Production
+# =========================
+/backend/build
+/frontend/build
+/dist
+
+# =========================
+# Testing
+# =========================
+/coverage
+
+# =========================
+# Environment / Config
+# =========================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# =========================
+# Logs
+# =========================
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs
+*.log
+
+# =========================
+# IDEs / OS
+# =========================
+.vscode/
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
