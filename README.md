@@ -75,9 +75,11 @@ npm install
 Create a `.env` file inside `server/`:
 
 ```env
-PORT=8000
-MONGO_URI=your_mongodb_uri
-JWT_SECRET=your_secret_key
+PORT = 8000
+MONGO_DB_URL = your_mongodb_url
+ACCESS_TOKEN_SECRET = your_secret_key
+GEMINI_API_KEY = your_gemini_api_key
+GEMINI_USER_ID = 68a04a9df1ec421dc06ef707
 ```
 
 Start the server:
