@@ -339,12 +339,24 @@ export default function GroupPage() {
         {/* Chat Input */}
         <div className="p-3 border-t border-neutral-800 bg-neutral-900 transition-colors duration-200">
           <div className="relative">
-            <input
-              type="text"
+            <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  if (e.shiftKey) {
+                    // Shift+Enter → insert newline
+                    return;
+                  } else {
+                    // Enter → send message
+                    e.preventDefault();
+                    sendMessage();
+                  }
+                }
+              }}
               placeholder="Type a message..."
-              className="w-full bg-neutral-800 text-white px-3 py-2 rounded text-xs focus:outline-none focus:ring-1 focus:ring-red-500 pr-8"
+              rows={2} 
+              className="w-full h-10 bg-neutral-800 text-white px-3 py-2 rounded text-xs focus:outline-none focus:ring-1 focus:ring-red-500 pr-8 resize-none"
             />
             <button
               onClick={sendMessage}
