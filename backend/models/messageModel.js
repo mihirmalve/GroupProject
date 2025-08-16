@@ -18,6 +18,10 @@ const messageModel = new mongoose.Schema({
     message: {
         type: String,
         required: true
+    },
+    isAI: {
+      type: Boolean,
+      default: false,
     }
 }, {timestamps: true})
 

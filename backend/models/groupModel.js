@@ -17,8 +17,9 @@ const groupModel = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "User"
     }],
-    code: {
-        type: String
+    codes: {
+        type: Map,   
+        of: String   
     },
     language: {
         type: String

@@ -94,7 +94,10 @@ class UserController {
   // Save code
   async saveCode(req, res) {
     try {
-      const { code } = req.body;
+      const { language, code } = req.body;
+    if (!language) {
+      return res.status(400).json({ error: "Language is required" });
+    }
       const token = req.cookies.jwt;
       if (!token) {
         return res.status(401).json({ error: "No token provided" });
@@ -105,9 +108,10 @@ class UserController {
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
-      user.code = code;
-      await user.save();
-      console.log(`Code saved successfully in ${code}`);
+      
+      user.codes.set(language, code);
+    await user.save();
+      console.log(`Code saved successfully for ${language}`);
       res.status(200).json({ message: "Code saved successfully" });
     } catch (error) {
       console.log("Error in saveCode controller", error.message);
@@ -128,7 +132,12 @@ class UserController {
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
-      res.status(200).json({ code: user.code });
+      const { language } = req.body; 
+    if (!language) {
+      return res.status(400).json({ error: "Language is required" });
+    }
+      const code = user.codes?.get(language) || "";
+    res.status(200).json({ code });
     } catch (error) {
       console.log("Error in getCode controller", error.message);
       res.json({ error: "Could not fetch the code" });

@@ -48,26 +48,30 @@ function HomePage() {
     }
   };
 
-  const fetchCode = async () => {
-    try {
-      const res = await axios.post(
-        "http://localhost:8000/getCode",
-        {},
-        {
-          withCredentials: true,
-        }
-      );
-      const data = res.data;
-      setCode(data.code); 
-    } catch (err) {
-      console.error("Failed to fetch code", err);
-    }
-  };
+  const fetchCode = async (lang) => {
+  try {
+    const res = await axios.post(
+  "http://localhost:8000/getCode",
+  { language },
+  { withCredentials: true }
+);
+
+    const data = res.data;
+    setCodes((prev) => ({
+      ...prev,
+      [lang]: data.code || "// Write your code here",
+    }));
+    console.log(codes)
+  } catch (err) {
+    console.error("Failed to fetch code", err);
+  }
+};
+
 
   // Load groups amd fetch code
   useEffect(() => {
     fetchGroups();
-    fetchCode();
+    fetchCode(language);
   }, []);
 
   const debounce = (func, delay) => {
@@ -79,11 +83,11 @@ function HomePage() {
   };
 
   const saveCodeToBackend = useCallback(
-    debounce(async (code) => {
+    debounce(async (lang, code) => {
       try {
         await axios.post(
           "http://localhost:8000/saveCode",
-          { code },
+          { language: lang, code },
           { withCredentials: true }
         );
         console.log("Code saved");
@@ -110,7 +114,7 @@ function HomePage() {
   };
 
   const [menuOpen, setMenuOpen] = useState(false);
-  const [code, setCode] = useState("// Write your code here");
+  const [codes, setCodes] = useState({});
   const [output, setOutput] = useState("");
   const [language, setLanguage] = useState("cpp");
   const [input, setInput] = useState("");
@@ -118,19 +122,10 @@ function HomePage() {
   const [showJoinGroupPage, setShowJoinGroupPage] = useState(false);
   const [joinedGroups, setJoinedGroups] = useState([]);
 
-  // const joinedGroups = [
-  //   "DSA Squad",
-  //   "Frontend Ninjas",
-  //   "CodeCrushers",
-  //   "NightOwls",
-  //   "Team Alpha",
-  //   "Backup Team",
-  // ];
-
   const handleCompile = async () => {
     try {
       const res = await axios.post("http://localhost:8000/compile", {
-        code,
+        code: codes[language] || "",
         language,
         input,
       });
@@ -146,6 +141,12 @@ function HomePage() {
       }
     }
   };
+
+  useEffect(() => {
+  if (language) {
+    fetchCode(language);
+  }
+}, [language]);
 
   return (
     <div className="h-screen w-screen bg-neutral-950 text-gray-200 flex flex-col font-sans">
@@ -264,11 +265,11 @@ function HomePage() {
             <Editor
               height="100%"
               language={language}
-              value={code}
+              value={codes[language] || ""}
               onChange={(val) => {
                 const updatedCode = val || "";
-                setCode(updatedCode);
-                saveCodeToBackend(updatedCode);
+                setCodes((prev) => ({ ...prev, [language]: updatedCode }));
+                saveCodeToBackend(language, updatedCode);
               }}
               theme="vs-dark"
               options={{

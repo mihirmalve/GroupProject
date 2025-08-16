@@ -30,8 +30,10 @@ const userModel = new mongoose.Schema({
     createdGroups: [{
         type: mongoose.Schema.Types.ObjectId, ref: "Group"
     }],
-    code: {
-        type: String
+    codes: {
+        type: Map,   
+        of: String,
+        default: {} 
     },
     language: {
         type: String
