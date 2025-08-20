@@ -1,44 +1,54 @@
-// server.js
-import compileRoutes from './routes/compileRoutes.js'
-import otpRoutes from './routes/otpRoutes.js'
-import authRoutes from './routes/authRoutes.js'
-import groupRoutes from "./routes/groupRoutes.js";
-import userRoutes from "./routes/userRoutes.js";
-
 import express from 'express';
-import cors from "cors"
-import dotenv from "dotenv"
-import cookieParser from "cookie-parser"
-import dbConnect from "./services/dbConnect.js"
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
+import dbConnect from './services/dbConnect.js';
+import compileRoutes from './routes/compileRoutes.js';
+import otpRoutes from './routes/otpRoutes.js';
+import authRoutes from './routes/authRoutes.js';
+import groupRoutes from './routes/groupRoutes.js';
+import userRoutes from './routes/userRoutes.js';
+import { app as socketApp, server } from './socket/socket.js';
 
-import {app, server} from './socket/socket.js'
+dotenv.config({ path: '../.env' });
 
-dotenv.config({ path: '../.env' })
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = socketApp;
 
 app.use(cors({
-  origin: "http://localhost:3000",  // your frontend URL
+  origin: process.env.CLIENT_URL || 'http://localhost:3000',
   credentials: true
 }));
 
-app.use(express.json())
-app.use(express.urlencoded({extended: true}))
-app.use(cookieParser())
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
-const PORT = process.env.PORT || 8000
+dbConnect();
 
-dbConnect()
+// API Routes
+app.use('/', authRoutes);
+app.use('/', compileRoutes);
+app.use('/', otpRoutes);
+app.use('/', groupRoutes);
+app.use('/', userRoutes);
 
-app.get('/', (req, res) => {
-  res.send('Hello from the backend!');
-});
+// Serve React frontend in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../frontend/build')));
 
-app.use("/", authRoutes)
-app.use('/',compileRoutes)
-app.use('/',otpRoutes)
-app.use('/',groupRoutes)
-app.use('/',userRoutes)
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
+  });
+}
+
+const PORT = process.env.PORT || 8000;
 
 server.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
