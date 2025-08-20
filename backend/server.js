@@ -13,7 +13,9 @@ import groupRoutes from './routes/groupRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import { app as socketApp, server } from './socket/socket.js';
 
-dotenv.config({ path: '../.env' });
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config(); // loads .env locally only
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
